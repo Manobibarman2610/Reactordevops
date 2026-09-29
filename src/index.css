@@ -1,21 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --fg: #ffffff;
-  --fg-soft: rgba(255, 255, 255, 0.85);
-  --fg-faint: rgba(255, 255, 255, 0.55);
-  --shade: transparent;
-  --rule: rgba(255, 255, 255, 0.14);
+  --fg: #0d0c0b;
+  --fg-soft: rgba(13, 12, 11, 0.64);
+  --fg-faint: rgba(13, 12, 11, 0.42);
+  --shade: #f2f0ec;
+  --rule: rgba(13, 12, 11, 0.12);
   --ease: cubic-bezier(.22, .61, .36, 1);
-  --pill-bg: #ffffff;
-  --pill-fg: #0a0908;
-  --card-bg: transparent;
+  --pill-bg: #0a0908;
+  --pill-fg: #ffffff;
+  --card-bg: #ffffff;
 }
 
 @layer base {
   body {
     font-family: 'Inter Tight', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    background-color: #02060f;
+    background-color: var(--shade);
     color: var(--fg);
     overflow-x: hidden;
     letter-spacing: -0.008em;
@@ -108,14 +108,16 @@
   transform: translateY(0);
 }
 
-/* Translucent dark glass container - NO WHITE CARDS */
-.studio-card {
-  background: rgba(4, 9, 20, 0.6);
+/* Light glass panels keep the dark foreground readable over the backdrop. */
+@layer components {
+ .studio-card {
+  background: rgba(255, 255, 255, 0.86);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(13, 12, 11, 0.12);
   border-radius: 20px;
-  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.65), 0 2px 10px -2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px -4px rgba(13, 12, 11, 0.12), 0 2px 10px -2px rgba(13, 12, 11, 0.06);
+ }
 }
 
 /* Subtle scrollbar */

@@ -333,7 +333,7 @@
     "branch": "main",
     "environment": "production",
     "service": "checkout-api",
-    "timestamp": "2026-09-29T09:19:56.725Z",
+    "timestamp": "2026-09-29T14:37:48.770Z",
     "status": "risk_flagged",
     "fileChanges": [
       {
@@ -374,11 +374,16 @@
     "databaseChanges": [],
     "riskAssessment": {
       "riskLevel": "CRITICAL",
-      "confidence": 95,
-      "headline": "Resembles Deployment #1 pg driver RDS connection exhaustion failure",
-      "summary": "Deployment #27 upgrades the 'pg' driver from 8.7.3 to 8.11.3 and modifies pool configurations in checkout-api, closely mirroring Deployment #1 which caused severe 502 outages. In Deployment #1, updating pg to 8.11+ broke default TLS handshake handling against AWS RDS, causing rapid pool exhaustion under production traffic. Without explicit RDS CA bundle verification and validated keepAlive settings, this deployment risks repeating catastrophic connection drops.",
+      "confidence": 89,
+      "headline": "Resembles Deployment #1: 'pg' driver upgrade previously caused AWS RDS connection pool exhaustion",
+      "summary": "In Deployment #1, updating 'pg' without explicit TLS CA configuration caused ECONNRESET dropouts and exhausted database pool connections under production load. Deployment #27 updates 'pg' to 8.11.3 in checkout-api.",
+      "plainEnglishHeadline": "STOP: This code change will crash user checkout and payments",
+      "plainEnglishSummary": "An engineer is trying to update the database connection tool (pg driver). But 6 months ago, that exact same update crashed our checkout system for 45 minutes because Amazon AWS rejected the security connection. Hindsight remembered this 92% match and stopped it before code was deployed.",
+      "customerImpact": "Customers trying to buy items will see \"Payment Failed\" or \"502 Server Error\". Checkout will be 100% blocked.",
+      "businessRisk": "Estimated ~$48,000 lost checkout revenue and ~45 minutes of customer downtime.",
+      "simpleFix": "Include the AWS RDS security certificate in the Docker build and deploy to only 5% of users (Canary) first.",
       "historicalComparison": {
-        "similarDeploymentId": "mem-deploy-1",
+        "similarDeploymentId": "dep-1",
         "similarDeploymentNumber": 1,
         "similarityScore": 92,
         "matchedTags": [
@@ -386,71 +391,78 @@
           "postgres",
           "tls",
           "connection-pool",
-          "checkout-api",
-          "aws-rds"
+          "checkout-api"
         ],
-        "whatChangedThen": "Upgraded 'pg' dependency from 8.7.3 to 8.11.1 in checkout-api.",
-        "whatFailedThen": "Strict TLS handshake failures (ECONNRESET) occurred against AWS RDS under load, exhausting the database connection pool in 4 minutes and triggering site-wide checkout 502 errors.",
-        "rootCauseThen": "pg v8.8+ changed default TLS rejection behaviour for self-signed or intermediate RDS certificates.",
-        "resolutionThen": "Configured AWS global-bundle.pem in ssl settings, set rejectUnauthorized: false with CA verification, added keepAlive: true, and reduced max pool clients to 12.",
-        "outcomeThen": "Database connection pool stabilized under peak traffic without ECONNRESET drops.",
+        "whatChangedThen": "Upgraded 'pg' from 8.7.3 to 8.11.1 in checkout-api",
+        "whatFailedThen": "Strict TLS handshake failure on RDS PostgreSQL connection pool; 25/25 clients drained in 4 minutes",
+        "rootCauseThen": "pg v8.8+ enforces strict TLS handshake rejectUnauthorized by default, rejecting RDS intermediate CA",
+        "resolutionThen": "Configured rejectUnauthorized: false with AWS global-bundle.pem cert bundle and reduced pool max to 12",
+        "outcomeThen": "Full production outage with 502 Bad Gateway across checkout flow (45 mins customer downtime)",
         "keyDifferences": [
-          "Current target version is 8.11.3 instead of 8.11.1.",
-          "Base Docker image is being upgraded to node:20-alpine simultaneously.",
-          "PG_MAX_POOL_CLIENTS environment variable is explicitly modified in this deployment."
+          "Current version targets 8.11.3 (was 8.11.1 in #1)",
+          "Current deployment also includes connection pool keepAlive tuning",
+          "Target environment is production"
         ]
       },
       "blastRadius": [
         {
           "service": "checkout-api",
           "severity": "HIGH",
-          "dependencyPath": "direct-service",
-          "potentialImpact": "Database pool starvation leading to HTTP 500/502 errors on order processing."
+          "dependencyPath": "Direct database driver",
+          "potentialImpact": "Primary pool starvation and HTTP 502 responses",
+          "userFacingImpact": "Customers cannot click \"Buy Now\" or finish orders"
         },
         {
           "service": "billing-worker",
           "severity": "HIGH",
-          "dependencyPath": "checkout-api -> billing-worker",
-          "potentialImpact": "Halted payment capturing and retry queue accumulation."
+          "dependencyPath": "Downstream payment queue",
+          "potentialImpact": "Payment authorization timeout cascading",
+          "userFacingImpact": "Credit card charges get stuck in processing queues"
         },
         {
           "service": "order-fulfillment-stream",
           "severity": "MEDIUM",
-          "dependencyPath": "checkout-api -> order-fulfillment-stream",
-          "potentialImpact": "Delayed order processing messages and downstream dispatch backlogs."
-        },
-        {
-          "service": "payment-gateway-proxy",
-          "severity": "MEDIUM",
-          "dependencyPath": "checkout-api -> payment-gateway-proxy",
-          "potentialImpact": "Orphaned transaction authorizations caused by dropped client connections."
+          "dependencyPath": "Event bus lag",
+          "potentialImpact": "Delayed inventory reservation backlog",
+          "userFacingImpact": "Warehouse shipments delayed by up to 2 hours"
         }
       ],
       "verificationChecklist": [
         {
-          "id": "verify-tls-cert-config",
-          "task": "Ensure RDS CA bundle (global-bundle.pem) is loaded in connection.ts ssl config with keepAlive enabled",
-          "command": "grep -E '(global-bundle\\.pem|keepAlive|rejectUnauthorized)' services/checkout/src/db/connection.ts",
+          "id": "chk-1",
+          "task": "Verify RDS certificate bundle (global-bundle.pem) is mounted in Docker container",
+          "plainEnglishTask": "Step 1: Make sure the AWS security certificate is copied into the server container",
+          "command": "openssl s_client -connect $PGHOST:5432 -starttls postgres",
+          "completed": false,
+          "category": "database"
+        },
+        {
+          "id": "chk-2",
+          "task": "Confirm ssl.rejectUnauthorized setting matches RDS intermediate chain policy",
+          "plainEnglishTask": "Step 2: Test that the database accepts our security credentials without crashing",
+          "command": "node -e \"require('./src/db/connection').testTlsHandshake()\"",
           "completed": false,
           "category": "runtime_config"
         },
         {
-          "id": "verify-pool-size-env",
-          "task": "Confirm PG_MAX_POOL_CLIENTS is tuned within RDS connection allocation limits (<= 12 clients per instance)",
-          "command": "printenv PG_MAX_POOL_CLIENTS",
+          "id": "chk-3",
+          "task": "Validate connection pool max limit (<= 12 clients per container instance)",
+          "plainEnglishTask": "Step 3: Keep simultaneous database connections limited to 12 to prevent server overload",
+          "command": "grep -rn \"max:\" services/checkout/src/db",
           "completed": false,
           "category": "runtime_config"
         },
         {
-          "id": "test-rds-ssl-connectivity",
-          "task": "Execute synthetic connection test against RDS PostgreSQL instance matching production SSL parameters",
-          "command": "node -e 'const { Pool } = require(\"pg\"); const p = new Pool({ ssl: { rejectUnauthorized: true, ca: process.env.RDS_CA_CERT } }); p.query(\"SELECT 1\").then(() => console.log(\"OK\")).catch(console.error).finally(() => p.end());'",
+          "id": "chk-4",
+          "task": "Run pgbench load test against canary replica before traffic shift",
+          "plainEnglishTask": "Step 4: Send simulated shopping traffic to 5% of users to prove it works before full rollout",
+          "command": "pgbench -c 15 -j 4 -t 100 -h $PGHOST_CANARY -U $PGUSER $PGDATABASE",
           "completed": false,
-          "category": "compatibility"
+          "category": "downstream"
         }
       ],
-      "recommendedStrategy": "BLOCK_AND_HOTFIX",
-      "preventionAdvice": "Halt rollout until services/checkout/src/db/connection.ts is verified against Deployment #1 fixes. Ensure the pg Pool config explicitly provides the AWS RDS global bundle CA certificate, specifies keepAlive: true, sets idleTimeoutMillis properly, and that PG_MAX_POOL_CLIENTS adheres to safe concurrency thresholds.",
+      "recommendedStrategy": "CANARY_5_PERCENT",
+      "preventionAdvice": "Hindsight memory indicates high probability of database connection failure if TLS parameters are not explicitly set. Test TLS handshake in canary before 100% traffic shift.",
       "hindsightMemoriesConsulted": [
         {
           "id": "mem-deploy-1",
@@ -465,7 +477,109 @@
           "summary": "Prisma migration with NOT NULL column locked 12M user table for 47s, exhausting database pool connections."
         }
       ],
-      "analyzedAt": "2026-09-29T09:20:43.371Z"
+      "analyzedAt": "2026-09-29T14:37:48.771Z"
+    }
+  },
+  {
+    "id": "dep-1790692662129",
+    "number": 28,
+    "commitHash": "4b7a11c",
+    "commitMessage": "db(users): add organization_uuid NOT NULL column to enterprise profiles table",
+    "author": {
+      "name": "Devon Lee",
+      "email": "dlee@reactor.io"
+    },
+    "branch": "feat/org-multitenancy",
+    "environment": "production",
+    "service": "user-service",
+    "timestamp": "2026-09-29T14:37:42.129Z",
+    "status": "risk_flagged",
+    "fileChanges": [
+      {
+        "path": "prisma/schema.prisma",
+        "type": "modified"
+      },
+      {
+        "path": "prisma/migrations/20260928_org_uuid/migration.sql",
+        "type": "added"
+      }
+    ],
+    "dependencyChanges": [],
+    "envVarChanges": [],
+    "infraChanges": [],
+    "databaseChanges": [
+      {
+        "migrationName": "20260928_org_uuid",
+        "type": "schema",
+        "hasDestructiveOperations": true,
+        "details": "ALTER TABLE enterprise_users ADD COLUMN org_uuid UUID NOT NULL"
+      }
+    ],
+    "riskAssessment": {
+      "riskLevel": "HIGH",
+      "confidence": 75,
+      "headline": "Resembles Deployment #22: Database migration pattern carries ACCESS EXCLUSIVE table lock risk",
+      "summary": "Hindsight records previous migration locking the 12M row table for 47 seconds, exhausting active connections.",
+      "plainEnglishHeadline": "Warning: This database update will freeze the entire website for ~1 minute",
+      "plainEnglishSummary": "The code is adding a new column to the customer database table without a default value. In Deployment #22, doing this locked 12 million rows and froze the entire website for 47 seconds, showing errors to all visitors.",
+      "customerImpact": "Website will freeze and show \"Service Unavailable\" for almost 1 full minute.",
+      "businessRisk": "All active customer transactions frozen during peak hours.",
+      "simpleFix": "Make the column optional (nullable) first, so the database can update in the background without freezing.",
+      "historicalComparison": {
+        "similarDeploymentId": "dep-22",
+        "similarDeploymentNumber": 22,
+        "similarityScore": 88,
+        "matchedTags": [
+          "prisma",
+          "postgres",
+          "migration",
+          "table-lock"
+        ],
+        "whatChangedThen": "Added NOT NULL column without DEFAULT value",
+        "whatFailedThen": "47 second ACCESS EXCLUSIVE lock on production table",
+        "rootCauseThen": "Full table rewrite required by non-null constraint without default",
+        "resolutionThen": "Used expand-contract pattern with batch backfilling",
+        "outcomeThen": "Database connection exhaustion & site-wide 503s",
+        "keyDifferences": [
+          "Current migration script targets schema changes in user-service"
+        ]
+      },
+      "blastRadius": [
+        {
+          "service": "user-service",
+          "severity": "HIGH",
+          "dependencyPath": "Database lock",
+          "potentialImpact": "Blocked write transactions",
+          "userFacingImpact": "Any user trying to save data gets an error spinner"
+        }
+      ],
+      "verificationChecklist": [
+        {
+          "id": "m1",
+          "task": "Ensure new columns are nullable or have default values",
+          "plainEnglishTask": "Step 1: Set the new database column to optional so existing rows are not frozen",
+          "completed": false,
+          "category": "database"
+        },
+        {
+          "id": "m2",
+          "task": "Validate lock_timeout is set (e.g. SET lock_timeout = \"2s\")",
+          "plainEnglishTask": "Step 2: Set an automatic 2-second safety timeout so the database aborts rather than freezing",
+          "completed": false,
+          "category": "database"
+        }
+      ],
+      "recommendedStrategy": "STAGED_WITH_SHADOW",
+      "preventionAdvice": "Adopt expand-contract migration pattern to avoid locking production tables during peak hours.",
+      "hindsightMemoriesConsulted": [
+        {
+          "id": "mem-deploy-22",
+          "score": 0.45,
+          "title": "Deployment #22: Prisma migration adding NOT NULL column without DEFAULT value",
+          "summary": "Prisma migration with NOT NULL column locked 12M user table for 47s, exhausting database pool connections."
+        }
+      ],
+      "analyzedAt": "2026-09-29T14:37:42.132Z"
     }
   }
 ]
