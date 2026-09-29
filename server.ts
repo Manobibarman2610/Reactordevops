@@ -8,7 +8,7 @@ import { Deployment } from './src/types/reactor.js';
 
 dotenv.config();
 
-const app = express();
+export const app = express();
 app.use(express.json());
 
 // Request logging
@@ -352,7 +352,10 @@ async function startServer() {
       res.sendFile(path.resolve(process.cwd(), 'dist', 'index.html'));
     });
   } else {
-    const { createServer: createViteServer } = await import('vite');
+    // Indirect specifier so bundlers (Vercel serverless build) never pull Vite
+    // into the function bundle — this dev-only branch never runs on Vercel.
+    const viteSpecifier = 'vite';
+    const { createServer: createViteServer } = await import(viteSpecifier);
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa'
@@ -365,4 +368,8 @@ async function startServer() {
   });
 }
 
-startServer();
+// On Vercel the app is exported from api/[...slug].ts and served as a
+// serverless function (static assets come from dist/), so don't bind a port.
+if (!process.env.VERCEL) {
+  startServer();
+}

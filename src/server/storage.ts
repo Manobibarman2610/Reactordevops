@@ -2,7 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import { Deployment } from '../types/reactor.js';
 
-const DATA_DIR = path.resolve(process.cwd(), 'data');
+// On Vercel serverless the project directory is read-only; /tmp is the only
+// writable location, so the store lives there (seeded from code on cold start).
+const DATA_DIR = process.env.VERCEL
+  ? '/tmp/reactor-data'
+  : path.resolve(process.cwd(), 'data');
 const DEPLOYMENTS_FILE = path.join(DATA_DIR, 'deployments_store.json');
 
 const SEED_DEPLOYMENTS: Deployment[] = [
@@ -278,6 +282,9 @@ export class StorageEngine {
 
   private saveDeployments() {
     try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
       const list = Array.from(this.deployments.values());
       fs.writeFileSync(DEPLOYMENTS_FILE, JSON.stringify(list, null, 2), 'utf-8');
     } catch (e) {

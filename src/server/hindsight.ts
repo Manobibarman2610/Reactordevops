@@ -2,12 +2,20 @@ import fs from 'fs';
 import path from 'path';
 import { HindsightMemory, HindsightBank, MemoryGraph } from '../types/reactor.js';
 
-const DATA_DIR = path.resolve(process.cwd(), 'data');
+// On Vercel serverless the project directory is read-only; /tmp is the only
+// writable location, so the store lives there (seeded from code on cold start).
+const DATA_DIR = process.env.VERCEL
+  ? '/tmp/reactor-data'
+  : path.resolve(process.cwd(), 'data');
 const STORE_FILE = path.join(DATA_DIR, 'hindsight_store.json');
 
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+// Ensure data directory exists (never fatal — read-only FS falls back to seeds)
+try {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+} catch (e) {
+  console.warn('[Hindsight] Could not create data directory, using in-memory store:', e);
 }
 
 // Initial seed organizational memories reflecting rich engineering deployment history
@@ -228,6 +236,9 @@ export class HindsightMemoryEngine {
 
   private saveStore() {
     try {
+      if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+      }
       const data: StoreSchema = {
         banks: Array.from(this.banks.values()),
         memories: Array.from(this.memories.values())
