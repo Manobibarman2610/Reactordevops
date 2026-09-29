@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { Navbar } from './components/Navbar.js';
-import { MotionHero } from './components/MotionHero.js';
+import { ScenarioHeader } from './components/ScenarioHeader.js';
 import { DeploymentInspector } from './components/DeploymentInspector.js';
 import { HindsightExplorer } from './components/HindsightExplorer.js';
 import { DeploymentsTable } from './components/DeploymentsTable.js';
 import { DevOpsAgentChat } from './components/DevOpsAgentChat.js';
 import { CustomDeploymentModal } from './components/CustomDeploymentModal.js';
-import { ContentDeliverablesModal } from './components/ContentDeliverablesModal.js';
 import { Deployment, HindsightMemory, HindsightBank, MemoryGraph } from './types/reactor.js';
-import { ShieldCheck, Activity, Database, CheckCircle, AlertTriangle, Sparkles, Layers } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'pipeline' | 'memory' | 'history' | 'agent' | 'deliverables'>('pipeline');
+  const [activeTab, setActiveTab] = useState<'pipeline' | 'memory' | 'history' | 'agent'>('pipeline');
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [activeDeployment, setActiveDeployment] = useState<Deployment | null>(null);
   
@@ -77,11 +75,7 @@ export default function App() {
       await loadData();
       setActiveDeployment(data.deployment);
       setActiveTab('pipeline');
-      showNotification('Deployment #27 triggered! Hindsight recalled Deployment #1 with 92% similarity.');
-      
-      // Smooth scroll to inspector
-      const el = document.getElementById('workspace-section');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      showNotification('Deployment #27 analyzed: Recalled Deployment #1 with 92% similarity');
     } catch (err: any) {
       showNotification(`Error: ${err.message}`);
     } finally {
@@ -101,10 +95,7 @@ export default function App() {
       await loadData();
       setActiveDeployment(data.deployment);
       setActiveTab('pipeline');
-      showNotification(`Scenario triggered: ${data.deployment.commitMessage}`);
-
-      const el = document.getElementById('workspace-section');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      showNotification(`Scenario loaded: ${data.deployment.commitMessage}`);
     } catch (err: any) {
       showNotification(`Error: ${err.message}`);
     } finally {
@@ -117,7 +108,7 @@ export default function App() {
       await fetch('/api/deployments/reset', { method: 'POST' });
       await loadData();
       setActiveDeployment(null);
-      showNotification('State reset to baseline seed deployments and memories.');
+      showNotification('Reset to baseline seed deployments and memories');
     } catch (err: any) {
       showNotification(`Error resetting state: ${err.message}`);
     }
@@ -128,8 +119,6 @@ export default function App() {
     if (dep) {
       setActiveDeployment(dep);
       setActiveTab('pipeline');
-      const el = document.getElementById('workspace-section');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -137,9 +126,7 @@ export default function App() {
     const dep = deployments.find(d => d.number === depNumber);
     if (dep) {
       setActiveDeployment(dep);
-      showNotification(`Inspecting historical Deployment #${depNumber} incident record.`);
-      const el = document.getElementById('workspace-section');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      showNotification(`Viewing historical Deployment #${depNumber} incident record`);
     }
   };
 
@@ -155,7 +142,7 @@ export default function App() {
       const result = await res.json();
       await loadData();
       setActiveDeployment(result.deployment);
-      showNotification(`Continuous learning loop complete: Memory retained into Hindsight!`);
+      showNotification('Deployment outcome recorded and retained into Hindsight');
     } catch (err: any) {
       showNotification(`Error retaining outcome: ${err.message}`);
     } finally {
@@ -188,7 +175,7 @@ export default function App() {
         body: JSON.stringify(memoryData)
       });
       await loadData();
-      showNotification('Post-mortem retained into Hindsight memory bank.');
+      showNotification('Memory entry retained into Hindsight bank');
     } catch (err: any) {
       showNotification(`Retain error: ${err.message}`);
     }
@@ -206,9 +193,7 @@ export default function App() {
       await loadData();
       setActiveDeployment(data.deployment);
       setActiveTab('pipeline');
-      showNotification(`Custom deployment #${data.deployment.number} ingested and evaluated!`);
-      const el = document.getElementById('workspace-section');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+      showNotification(`Custom deployment #${data.deployment.number} ingested`);
     } catch (err: any) {
       showNotification(`Analysis error: ${err.message}`);
     } finally {
@@ -217,8 +202,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#080c14] text-slate-100 flex flex-col font-sans selection:bg-amber-500/20 selection:text-amber-200 antialiased">
-      {/* 1. Floating Pill Navigation */}
+    <div className="min-h-screen bg-[#f2f0ec] text-[#0d0c0b] flex flex-col font-sans selection:bg-[#0a0908] selection:text-white antialiased">
+      {/* 1. Fixed Chrome Navigation Bar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -231,192 +216,125 @@ export default function App() {
         }}
       />
 
-      {/* Floating Animated Toast Notification */}
-      <AnimatePresence>
-        {notification && (
-          <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-            className="fixed bottom-6 right-6 z-50 rounded-full bg-slate-950 text-slate-100 px-5 py-3 text-xs font-semibold shadow-2xl border border-amber-500/40 flex items-center gap-2.5 backdrop-blur-xl"
-          >
-            <Sparkles className="h-4 w-4 shrink-0 text-amber-400" />
-            <span>{notification}</span>
-          </motion.div>
+      {/* Floating Toast Notification */}
+      {notification && (
+        <div className="fixed bottom-6 right-6 z-50 rounded-full bg-[#0a0908] text-white px-5 py-3 text-xs shadow-xl flex items-center gap-2.5">
+          <span className="h-2 w-2 rounded-full bg-emerald-400" />
+          <span>{notification}</span>
+        </div>
+      )}
+
+      {/* Main Viewport Content with Spacious, Unattached Layout */}
+      <main className="flex-1 max-w-6xl w-full mx-auto px-6 md:px-12 pt-24 md:pt-28 pb-16 space-y-10">
+        {/* Tab 1: Pre-Flight Pipeline */}
+        {activeTab === 'pipeline' && (
+          <div className="space-y-10">
+            <ScenarioHeader
+              onRunCoreStory={handleRunCoreStory}
+              onRunScenario={handleRunScenario}
+              onReset={handleReset}
+              onOpenCustomModal={() => setIsCustomModalOpen(true)}
+              isAnalyzing={isAnalyzing}
+            />
+
+            {activeDeployment ? (
+              <DeploymentInspector
+                deployment={activeDeployment}
+                onRecordOutcome={handleRecordOutcome}
+                isSubmittingOutcome={isSubmittingOutcome}
+                onViewHistoricalDeployment={handleViewHistoricalDeployment}
+              />
+            ) : (
+              <div className="studio-card p-12 text-center space-y-4 bg-white border border-[rgba(13,12,11,0.12)]">
+                <ShieldCheck className="h-10 w-10 text-[rgba(13,12,11,0.4)] mx-auto" />
+                <h3 className="text-base font-medium text-[#0d0c0b]">No Deployment Selected</h3>
+                <p className="text-xs text-[rgba(13,12,11,0.6)] max-w-sm mx-auto">
+                  Select a simulation above or trigger Deployment #27 to inspect pre-flight risk.
+                </p>
+                <button
+                  onClick={handleRunCoreStory}
+                  className="pill text-xs !h-9 !px-4"
+                >
+                  Run Deployment #27
+                </button>
+              </div>
+            )}
+          </div>
         )}
-      </AnimatePresence>
 
-      {/* Main Viewport Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-4 space-y-8">
-        {/* Motionsites-Inspired Atmospheric Hero */}
-        <MotionHero
-          onRunCoreStory={handleRunCoreStory}
-          onRunScenario={handleRunScenario}
-          onReset={handleReset}
-          onOpenCustomModal={() => setIsCustomModalOpen(true)}
-          onSelectTab={setActiveTab}
-          isAnalyzing={isAnalyzing}
-          hindsightStats={{
-            memoryCount: hindsightMemories.length,
-            bankCount: hindsightBanks.length
-          }}
-        />
-
-        {/* Section Anchor */}
-        <div id="workspace-section" className="pt-2">
-          {/* Workspace Sub-Header with Active Tab Switcher */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
-            <div>
-              <h2 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                {activeTab === 'pipeline' && 'Pre-Flight Pipeline & Inspector'}
-                {activeTab === 'memory' && 'Hindsight Agent Memory Explorer'}
-                {activeTab === 'history' && 'Deployment History & Incident Audit'}
-                {activeTab === 'agent' && 'DevOps Knowledge Agent Terminal'}
-                {activeTab === 'deliverables' && 'Official Submission Deliverables'}
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {activeTab === 'pipeline' && 'Active deployment risk evaluation, similarity comparison with historical outages, and verification checklist.'}
-                {activeTab === 'memory' && 'Interactive semantic memory queries, vector similarity banks, and knowledge graph visualization.'}
-                {activeTab === 'history' && 'Immutable historical deployment ledger with root causes and downstream blast radius.'}
-                {activeTab === 'agent' && 'Ask questions regarding historical outages, dependency incompatibilities, and preventative remediations.'}
-                {activeTab === 'deliverables' && 'Technical deep-dive article, viral LinkedIn post, and video walkthrough script.'}
+        {/* Tab 2: Hindsight Agent Memory Explorer */}
+        {activeTab === 'memory' && (
+          <div className="space-y-8">
+            <div className="space-y-2 pb-2">
+              <div className="text-xs font-mono text-[rgba(13,12,11,0.5)] uppercase tracking-wider">
+                Organizational Knowledge Layer
+              </div>
+              <h1 className="text-3xl md:text-4xl font-normal tracking-tight text-[#0d0c0b]">
+                Hindsight Memory Banks
+              </h1>
+              <p className="text-sm text-[rgba(13,12,11,0.65)] max-w-2xl leading-relaxed">
+                Query the long-term semantic memory layer to view recalled incident graphs, dependency histories, and verified remediation patterns.
               </p>
             </div>
 
-            {/* Quick Filter Pill Controls */}
-            <div className="flex items-center gap-1.5 p-1 rounded-full bg-slate-900/60 border border-white/5 self-start sm:self-auto">
-              <button
-                onClick={() => setActiveTab('pipeline')}
-                className={`px-3 py-1 text-xs rounded-full transition-colors ${activeTab === 'pipeline' ? 'bg-white/10 text-white font-medium' : 'text-slate-400 hover:text-slate-200'}`}
-              >
-                Pipeline
-              </button>
-              <button
-                onClick={() => setActiveTab('memory')}
-                className={`px-3 py-1 text-xs rounded-full transition-colors ${activeTab === 'memory' ? 'bg-white/10 text-white font-medium' : 'text-slate-400 hover:text-slate-200'}`}
-              >
-                Memory ({hindsightMemories.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('history')}
-                className={`px-3 py-1 text-xs rounded-full transition-colors ${activeTab === 'history' ? 'bg-white/10 text-white font-medium' : 'text-slate-400 hover:text-slate-200'}`}
-              >
-                Ledger ({deployments.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('agent')}
-                className={`px-3 py-1 text-xs rounded-full transition-colors ${activeTab === 'agent' ? 'bg-white/10 text-white font-medium' : 'text-slate-400 hover:text-slate-200'}`}
-              >
-                Agent Chat
-              </button>
-            </div>
+            <HindsightExplorer
+              memories={hindsightMemories}
+              banks={hindsightBanks}
+              graph={hindsightGraph}
+              onRecallQuery={handleRecallQuery}
+              onRetainMemory={handleRetainMemory}
+              isLoadingRecall={isLoadingRecall}
+            />
           </div>
-        </div>
+        )}
 
-        {/* Tab Switcher with Animated Transition */}
-        <AnimatePresence mode="wait">
-          {/* Tab 1: Pre-Flight Pipeline & Inspector */}
-          {activeTab === 'pipeline' && (
-            <motion.div
-              key="pipeline"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-6"
-            >
-              {activeDeployment ? (
-                <DeploymentInspector
-                  deployment={activeDeployment}
-                  onRecordOutcome={handleRecordOutcome}
-                  isSubmittingOutcome={isSubmittingOutcome}
-                  onViewHistoricalDeployment={handleViewHistoricalDeployment}
-                />
-              ) : (
-                <div className="rounded-2xl border border-white/10 bg-[#0d131f]/90 p-12 text-center space-y-3 shadow-xl">
-                  <ShieldCheck className="h-10 w-10 text-amber-500 mx-auto" />
-                  <h3 className="text-base font-bold text-white">No Active Deployment Selected</h3>
-                  <p className="text-xs text-slate-400 max-w-md mx-auto">
-                    Click 'Run Deployment #27 (Core Story)' above to trigger pre-flight analysis with Hindsight recall.
-                  </p>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleRunCoreStory}
-                    className="px-5 py-2.5 text-xs font-bold rounded-full bg-amber-500 text-slate-950 hover:bg-amber-400 transition-colors cursor-pointer shadow-md shadow-amber-500/20"
-                  >
-                    Run Deployment #27 Now
-                  </motion.button>
+        {/* Tab 3: Historical Deployment Ledger */}
+        {activeTab === 'history' && (
+          <div className="space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2">
+              <div className="space-y-2">
+                <div className="text-xs font-mono text-[rgba(13,12,11,0.5)] uppercase tracking-wider">
+                  Audit Trail
                 </div>
-              )}
-            </motion.div>
-          )}
+                <h1 className="text-3xl md:text-4xl font-normal tracking-tight text-[#0d0c0b]">
+                  Deployment Ledger
+                </h1>
+                <p className="text-sm text-[rgba(13,12,11,0.65)] max-w-2xl leading-relaxed">
+                  Historical log of deployments, downstream blast radiuses, and post-incident retentions.
+                </p>
+              </div>
 
-          {/* Tab 2: Hindsight Agent Memory Explorer */}
-          {activeTab === 'memory' && (
-            <motion.div
-              key="memory"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
-            >
-              <HindsightExplorer
-                memories={hindsightMemories}
-                banks={hindsightBanks}
-                graph={hindsightGraph}
-                onRecallQuery={handleRecallQuery}
-                onRetainMemory={handleRetainMemory}
-                isLoadingRecall={isLoadingRecall}
-              />
-            </motion.div>
-          )}
+              <div className="text-xs font-mono text-[rgba(13,12,11,0.5)]">
+                {deployments.length} deployments indexed
+              </div>
+            </div>
 
-          {/* Tab 3: Historical Deployment Ledger */}
-          {activeTab === 'history' && (
-            <motion.div
-              key="history"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-4"
-            >
-              <DeploymentsTable
-                deployments={deployments}
-                selectedDeploymentId={activeDeployment?.id || null}
-                onSelectDeployment={handleSelectDeployment}
-              />
-            </motion.div>
-          )}
+            <DeploymentsTable
+              deployments={deployments}
+              selectedDeploymentId={activeDeployment?.id || null}
+              onSelectDeployment={handleSelectDeployment}
+            />
+          </div>
+        )}
 
-          {/* Tab 4: DevOps Knowledge Agent Chat Terminal */}
-          {activeTab === 'agent' && (
-            <motion.div
-              key="agent"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
-            >
-              <DevOpsAgentChat />
-            </motion.div>
-          )}
+        {/* Tab 4: DevOps Agent Q&A */}
+        {activeTab === 'agent' && (
+          <div className="space-y-8">
+            <div className="space-y-2 pb-2">
+              <div className="text-xs font-mono text-[rgba(13,12,11,0.5)] uppercase tracking-wider">
+                Engineering Assistant
+              </div>
+              <h1 className="text-3xl md:text-4xl font-normal tracking-tight text-[#0d0c0b]">
+                DevOps Knowledge Agent
+              </h1>
+              <p className="text-sm text-[rgba(13,12,11,0.65)] max-w-2xl leading-relaxed">
+                Ask questions regarding historical outages, dependency incompatibilities, and preventative remediations.
+              </p>
+            </div>
 
-          {/* Tab 5: Hackathon Deliverables Viewer */}
-          {activeTab === 'deliverables' && (
-            <motion.div
-              key="deliverables"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.25 }}
-            >
-              <ContentDeliverablesModal />
-            </motion.div>
-          )}
-        </AnimatePresence>
+            <DevOpsAgentChat />
+          </div>
+        )}
       </main>
 
       {/* Ingest Custom Deployment Modal */}
@@ -427,16 +345,18 @@ export default function App() {
         isAnalyzing={isAnalyzing}
       />
 
-      {/* Minimalist Footer */}
-      <footer className="w-full border-t border-white/5 bg-[#05080e] py-6 px-4 text-center text-xs text-slate-500 font-mono">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-400">REACTOR</span>
-            <span>·</span>
-            <span>The AI DevOps Engineer That Remembers Every Deployment</span>
+      {/* Studio Footer from Cast & Render spec */}
+      <footer className="w-full border-t border-[rgba(13,12,11,0.08)] bg-[#eae7e0]/60 py-8 px-6 text-xs text-[rgba(13,12,11,0.5)] font-sans">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+          <div className="flex items-center gap-2 font-mono">
+            <span className="font-semibold text-[#0d0c0b]">REACTOR</span>
+            <span>&middot;</span>
+            <span>112 Deployment Lane</span>
+            <span>&middot;</span>
+            <span>Continuous Memory Loop</span>
           </div>
-          <div className="text-slate-500 text-[11px]">
-            Hindsight Agent Memory · Continuous Learning Loop · Zero-Amnesia CI/CD
+          <div>
+            Powered by Hindsight long-term agent memory
           </div>
         </div>
       </footer>

@@ -1,21 +1,58 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>REACTOR — The AI DevOps Engineer That Remembers Every Deployment</title>
-    <meta name="description" content="Turn every deployment into organizational memory that helps your team prevent the next failure with Hindsight long-term memory." />
-    <meta property="og:title" content="REACTOR — The AI DevOps Engineer That Remembers Every Deployment" />
-    <meta property="og:description" content="Turn every deployment into organizational memory that helps your team prevent the next failure with Hindsight long-term memory." />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  </head>
-  <body class="bg-[#0b0f17] text-slate-100 antialiased selection:bg-amber-500/20 selection:text-amber-200">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>REACTOR — The AI DevOps Engineer That Remembers Every Deployment</title>
+  <meta name="description" content="Turning every deployment into organizational memory that helps your team prevent the next failure.">
+  <meta property="og:title" content="REACTOR — The AI DevOps Engineer That Remembers Every Deployment">
+  <meta property="og:description" content="Turning every deployment into organizational memory that helps your team prevent the next failure.">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --fg: #0d0c0b;
+      --fg-soft: rgba(13, 12, 11, 0.64);
+      --fg-faint: rgba(13, 12, 11, 0.42);
+      --shade: #f2f0ec;
+      --rule: rgba(13, 12, 11, 0.12);
+      --ease: cubic-bezier(.22, .61, .36, 1);
+      --pill-bg: #0a0908;
+      --pill-fg: #ffffff;
+      --card-bg: #ffffff;
+    }
 
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html {
+      -webkit-text-size-adjust: 100%;
+      background: var(--shade);
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--shade);
+      color: var(--fg);
+      font-family: 'Inter Tight', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-weight: 400;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    code, pre, .font-mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+</html>

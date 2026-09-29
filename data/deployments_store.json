@@ -333,7 +333,7 @@
     "branch": "main",
     "environment": "production",
     "service": "checkout-api",
-    "timestamp": "2026-09-28T18:20:59.135Z",
+    "timestamp": "2026-09-29T09:19:56.725Z",
     "status": "risk_flagged",
     "fileChanges": [
       {
@@ -374,11 +374,11 @@
     "databaseChanges": [],
     "riskAssessment": {
       "riskLevel": "CRITICAL",
-      "confidence": 89,
-      "headline": "Resembles Deployment #1: 'pg' driver upgrade previously caused AWS RDS connection pool exhaustion",
-      "summary": "In Deployment #1, updating 'pg' without explicit TLS CA configuration caused ECONNRESET dropouts and exhausted database pool connections under production load. Deployment #27 updates 'pg' to 8.11.3 in checkout-api.",
+      "confidence": 95,
+      "headline": "Resembles Deployment #1 pg driver RDS connection exhaustion failure",
+      "summary": "Deployment #27 upgrades the 'pg' driver from 8.7.3 to 8.11.3 and modifies pool configurations in checkout-api, closely mirroring Deployment #1 which caused severe 502 outages. In Deployment #1, updating pg to 8.11+ broke default TLS handshake handling against AWS RDS, causing rapid pool exhaustion under production traffic. Without explicit RDS CA bundle verification and validated keepAlive settings, this deployment risks repeating catastrophic connection drops.",
       "historicalComparison": {
-        "similarDeploymentId": "dep-1",
+        "similarDeploymentId": "mem-deploy-1",
         "similarDeploymentNumber": 1,
         "similarityScore": 92,
         "matchedTags": [
@@ -386,71 +386,71 @@
           "postgres",
           "tls",
           "connection-pool",
-          "checkout-api"
+          "checkout-api",
+          "aws-rds"
         ],
-        "whatChangedThen": "Upgraded 'pg' from 8.7.3 to 8.11.1 in checkout-api",
-        "whatFailedThen": "Strict TLS handshake failure on RDS PostgreSQL connection pool; 25/25 clients drained in 4 minutes",
-        "rootCauseThen": "pg v8.8+ enforces strict TLS handshake rejectUnauthorized by default, rejecting RDS intermediate CA",
-        "resolutionThen": "Configured rejectUnauthorized: false with AWS global-bundle.pem cert bundle and reduced pool max to 12",
-        "outcomeThen": "Full production outage with 502 Bad Gateway across checkout flow",
+        "whatChangedThen": "Upgraded 'pg' dependency from 8.7.3 to 8.11.1 in checkout-api.",
+        "whatFailedThen": "Strict TLS handshake failures (ECONNRESET) occurred against AWS RDS under load, exhausting the database connection pool in 4 minutes and triggering site-wide checkout 502 errors.",
+        "rootCauseThen": "pg v8.8+ changed default TLS rejection behaviour for self-signed or intermediate RDS certificates.",
+        "resolutionThen": "Configured AWS global-bundle.pem in ssl settings, set rejectUnauthorized: false with CA verification, added keepAlive: true, and reduced max pool clients to 12.",
+        "outcomeThen": "Database connection pool stabilized under peak traffic without ECONNRESET drops.",
         "keyDifferences": [
-          "Current version targets 8.11.3 (was 8.11.1 in #1)",
-          "Current deployment also includes connection pool keepAlive tuning",
-          "Target environment is production"
+          "Current target version is 8.11.3 instead of 8.11.1.",
+          "Base Docker image is being upgraded to node:20-alpine simultaneously.",
+          "PG_MAX_POOL_CLIENTS environment variable is explicitly modified in this deployment."
         ]
       },
       "blastRadius": [
         {
           "service": "checkout-api",
           "severity": "HIGH",
-          "dependencyPath": "Direct driver runtime",
-          "potentialImpact": "Primary pool starvation and HTTP 502 responses"
+          "dependencyPath": "direct-service",
+          "potentialImpact": "Database pool starvation leading to HTTP 500/502 errors on order processing."
         },
         {
           "service": "billing-worker",
           "severity": "HIGH",
-          "dependencyPath": "Downstream synchronous RPC",
-          "potentialImpact": "Payment authorization timeout cascading"
+          "dependencyPath": "checkout-api -> billing-worker",
+          "potentialImpact": "Halted payment capturing and retry queue accumulation."
         },
         {
           "service": "order-fulfillment-stream",
           "severity": "MEDIUM",
-          "dependencyPath": "Event bus lag",
-          "potentialImpact": "Delayed inventory reservation backlog"
+          "dependencyPath": "checkout-api -> order-fulfillment-stream",
+          "potentialImpact": "Delayed order processing messages and downstream dispatch backlogs."
+        },
+        {
+          "service": "payment-gateway-proxy",
+          "severity": "MEDIUM",
+          "dependencyPath": "checkout-api -> payment-gateway-proxy",
+          "potentialImpact": "Orphaned transaction authorizations caused by dropped client connections."
         }
       ],
       "verificationChecklist": [
         {
-          "id": "chk-1",
-          "task": "Verify RDS certificate bundle (global-bundle.pem) is mounted in Docker container",
-          "command": "openssl s_client -connect $PGHOST:5432 -starttls postgres",
-          "completed": false,
-          "category": "database"
-        },
-        {
-          "id": "chk-2",
-          "task": "Confirm ssl.rejectUnauthorized setting matches RDS intermediate chain policy",
-          "command": "node -e \"require('./src/db/connection').testTlsHandshake()\"",
+          "id": "verify-tls-cert-config",
+          "task": "Ensure RDS CA bundle (global-bundle.pem) is loaded in connection.ts ssl config with keepAlive enabled",
+          "command": "grep -E '(global-bundle\\.pem|keepAlive|rejectUnauthorized)' services/checkout/src/db/connection.ts",
           "completed": false,
           "category": "runtime_config"
         },
         {
-          "id": "chk-3",
-          "task": "Validate connection pool max limit (<= 12 clients per container instance)",
-          "command": "grep -rn \"max:\" services/checkout/src/db",
+          "id": "verify-pool-size-env",
+          "task": "Confirm PG_MAX_POOL_CLIENTS is tuned within RDS connection allocation limits (<= 12 clients per instance)",
+          "command": "printenv PG_MAX_POOL_CLIENTS",
           "completed": false,
           "category": "runtime_config"
         },
         {
-          "id": "chk-4",
-          "task": "Run pgbench load test against canary replica before traffic shift",
-          "command": "pgbench -c 15 -j 4 -t 100 -h $PGHOST_CANARY -U $PGUSER $PGDATABASE",
+          "id": "test-rds-ssl-connectivity",
+          "task": "Execute synthetic connection test against RDS PostgreSQL instance matching production SSL parameters",
+          "command": "node -e 'const { Pool } = require(\"pg\"); const p = new Pool({ ssl: { rejectUnauthorized: true, ca: process.env.RDS_CA_CERT } }); p.query(\"SELECT 1\").then(() => console.log(\"OK\")).catch(console.error).finally(() => p.end());'",
           "completed": false,
-          "category": "downstream"
+          "category": "compatibility"
         }
       ],
-      "recommendedStrategy": "CANARY_5_PERCENT",
-      "preventionAdvice": "Hindsight memory indicates high probability of database connection failure if TLS parameters are not explicitly set. Test TLS handshake in canary before 100% traffic shift.",
+      "recommendedStrategy": "BLOCK_AND_HOTFIX",
+      "preventionAdvice": "Halt rollout until services/checkout/src/db/connection.ts is verified against Deployment #1 fixes. Ensure the pg Pool config explicitly provides the AWS RDS global bundle CA certificate, specifies keepAlive: true, sets idleTimeoutMillis properly, and that PG_MAX_POOL_CLIENTS adheres to safe concurrency thresholds.",
       "hindsightMemoriesConsulted": [
         {
           "id": "mem-deploy-1",
@@ -465,7 +465,7 @@
           "summary": "Prisma migration with NOT NULL column locked 12M user table for 47s, exhausting database pool connections."
         }
       ],
-      "analyzedAt": "2026-09-28T18:21:01.223Z"
+      "analyzedAt": "2026-09-29T09:20:43.371Z"
     }
   }
 ]

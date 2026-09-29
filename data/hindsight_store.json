@@ -60,7 +60,7 @@
         "mem-deploy-11",
         "mem-deploy-22"
       ],
-      "recallCount": 15,
+      "recallCount": 18,
       "importance": 0.95
     },
     {
@@ -205,7 +205,7 @@
       "associations": [
         "mem-deploy-1"
       ],
-      "recallCount": 17,
+      "recallCount": 20,
       "importance": 0.96
     },
     {

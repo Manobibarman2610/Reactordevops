@@ -1,25 +1,20 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { 
   Deployment, 
   VerificationCheckItem 
 } from '../types/reactor.js';
 import { 
-  AlertTriangle, 
-  CheckCircle2, 
   GitCommit, 
   ExternalLink, 
   Copy, 
   Check, 
   Terminal, 
-  ShieldAlert, 
   Database, 
-  BrainCircuit, 
   Share2, 
   Clock, 
-  ArrowRight,
-  Sparkles,
-  Zap
+  AlertTriangle,
+  ShieldCheck,
+  ArrowRight
 } from 'lucide-react';
 
 interface DeploymentInspectorProps {
@@ -88,504 +83,450 @@ export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
   const progressPct = checklist.length > 0 ? (completedCount / checklist.length) * 100 : 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-5"
-    >
-      {/* 1. Deployment Ingestion Header */}
-      <motion.div
-        layout
-        className="rounded-2xl border border-slate-800/80 bg-[#0d131f]/90 backdrop-blur-xl p-5 sm:p-6 shadow-xl shadow-black/30"
-      >
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
-          <div>
-            <div className="flex items-center gap-2 text-xs text-slate-400 font-mono mb-1.5">
-              <span className="text-amber-400 font-bold px-2 py-0.5 rounded bg-amber-950/60 border border-amber-800/50">
-                DEPLOYMENT #{deployment.number}
-              </span>
-              <span>·</span>
-              <span className="text-slate-200 font-semibold">{deployment.service}</span>
-              <span>·</span>
-              <span className="uppercase text-slate-300 bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700/60">
-                {deployment.environment}
-              </span>
-              <span>·</span>
-              <span>{new Date(deployment.timestamp).toLocaleTimeString()}</span>
+    <div className="space-y-8">
+      {/* 1. Deployment Ingestion Card */}
+      <section className="studio-card p-6 md:p-8 bg-white border border-[rgba(13,12,11,0.12)]">
+        {/* Header Details */}
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 pb-6 border-b border-[rgba(13,12,11,0.08)]">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-[rgba(13,12,11,0.5)] font-mono">
+              <span className="font-semibold text-[#0d0c0b]">Deployment #{deployment.number}</span>
+              <span>&middot;</span>
+              <span>{deployment.service}</span>
+              <span>&middot;</span>
+              <span className="uppercase">{deployment.environment}</span>
+              <span>&middot;</span>
+              <span>{new Date(deployment.timestamp).toLocaleString()}</span>
             </div>
 
-            <h2 className="text-lg font-bold text-white flex items-center gap-2.5">
-              <GitCommit className="h-5 w-5 text-amber-500 shrink-0" />
+            <h2 className="text-xl md:text-2xl font-medium tracking-tight text-[#0d0c0b] flex items-center gap-2.5">
+              <GitCommit className="h-5 w-5 text-[rgba(13,12,11,0.5)] shrink-0" />
               <span>{deployment.commitMessage}</span>
             </h2>
           </div>
 
-          <div className="flex items-center gap-4 shrink-0">
-            <div className="text-right text-xs">
-              <div className="text-slate-400">Author</div>
-              <div className="font-medium text-slate-200">{deployment.author.name}</div>
+          <div className="flex items-center gap-5 text-xs text-[rgba(13,12,11,0.6)] font-mono shrink-0 pt-1">
+            <div>
+              <span className="text-[rgba(13,12,11,0.4)] block text-[11px]">Author</span>
+              <span className="text-[#0d0c0b] font-sans font-medium">{deployment.author.name}</span>
             </div>
-            <div className="h-8 w-px bg-slate-800" />
-            <div className="text-right text-xs">
-              <div className="text-slate-400">Commit Hash</div>
-              <div className="font-mono text-amber-300">{deployment.commitHash}</div>
+            <div className="h-7 w-px bg-[rgba(13,12,11,0.12)]" />
+            <div>
+              <span className="text-[rgba(13,12,11,0.4)] block text-[11px]">Commit</span>
+              <span className="text-[#0d0c0b] font-mono">{deployment.commitHash}</span>
             </div>
           </div>
         </div>
 
-        {/* Normalized Change Delta Grid */}
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          <motion.div whileHover={{ y: -2 }} className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/70">
-            <div className="text-slate-400 font-medium mb-1.5 flex items-center gap-1.5">
-              <Sparkles className="h-3 w-3 text-amber-400" />
-              <span>Dependencies Modified</span>
+        {/* Normalized Changes Grid */}
+        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-xs">
+          {/* Dependencies */}
+          <div className="space-y-2.5">
+            <div className="text-[rgba(13,12,11,0.45)] font-semibold text-[11px] uppercase tracking-wider font-mono">
+              Dependencies Modified
             </div>
             {deployment.dependencyChanges.length > 0 ? (
-              <div className="space-y-1">
+              <div className="space-y-2 font-mono">
                 {deployment.dependencyChanges.map((dep, i) => (
-                  <div key={i} className="font-mono text-amber-300 flex items-center justify-between bg-slate-950/40 px-2 py-1 rounded">
+                  <div key={i} className="flex items-center justify-between text-[#0d0c0b] py-1.5 border-b border-[rgba(13,12,11,0.06)]">
                     <span className="font-semibold">{dep.name}</span>
-                    <span className="text-slate-400 text-[11px]">{dep.fromVersion} → {dep.toVersion}</span>
+                    <span className="text-[rgba(13,12,11,0.6)]">{dep.fromVersion} &rarr; {dep.toVersion}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-slate-500 font-mono py-1">No dependency changes</div>
+              <p className="text-[rgba(13,12,11,0.4)] italic py-1">No dependency changes</p>
             )}
-          </motion.div>
+          </div>
 
-          <motion.div whileHover={{ y: -2 }} className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/70">
-            <div className="text-slate-400 font-medium mb-1.5 flex items-center gap-1.5">
-              <Terminal className="h-3 w-3 text-cyan-400" />
-              <span>Infrastructure & Env</span>
+          {/* Infrastructure */}
+          <div className="space-y-2.5">
+            <div className="text-[rgba(13,12,11,0.45)] font-semibold text-[11px] uppercase tracking-wider font-mono">
+              Infrastructure &amp; Config
             </div>
             {deployment.infraChanges.length > 0 || deployment.envVarChanges.length > 0 ? (
-              <div className="space-y-1">
+              <div className="space-y-2 font-mono">
                 {deployment.infraChanges.map((infra, i) => (
-                  <div key={i} className="text-slate-300 font-mono text-[11px] truncate bg-slate-950/40 px-2 py-1 rounded">
-                    {infra.component}: {infra.description}
+                  <div key={i} className="text-[#0d0c0b] py-1.5 border-b border-[rgba(13,12,11,0.06)]">
+                    <span className="font-semibold">{infra.component}:</span> {infra.description}
                   </div>
                 ))}
                 {deployment.envVarChanges.map((env, i) => (
-                  <div key={i} className="text-slate-300 font-mono text-[11px] truncate bg-slate-950/40 px-2 py-1 rounded">
-                    Env: {env.key} ({env.action})
+                  <div key={i} className="text-[#0d0c0b] py-1.5 border-b border-[rgba(13,12,11,0.06)]">
+                    <span className="font-semibold">Env {env.key}:</span> {env.action}
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-slate-500 font-mono py-1">Standard container config</div>
+              <p className="text-[rgba(13,12,11,0.4)] italic py-1">Standard container configuration</p>
             )}
-          </motion.div>
+          </div>
 
-          <motion.div whileHover={{ y: -2 }} className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/70">
-            <div className="text-slate-400 font-medium mb-1.5 flex items-center gap-1.5">
-              <Database className="h-3 w-3 text-indigo-400" />
-              <span>Database Migrations</span>
+          {/* Database */}
+          <div className="space-y-2.5">
+            <div className="text-[rgba(13,12,11,0.45)] font-semibold text-[11px] uppercase tracking-wider font-mono">
+              Database Migrations
             </div>
             {deployment.databaseChanges.length > 0 ? (
-              <div className="space-y-1">
+              <div className="space-y-2 font-mono">
                 {deployment.databaseChanges.map((db, i) => (
-                  <div key={i} className="text-red-300 font-mono text-[11px] truncate bg-slate-950/40 px-2 py-1 rounded">
-                    {db.migrationName}: {db.hasDestructiveOperations ? 'Locking operation' : 'Safe operation'}
+                  <div key={i} className="text-[#0d0c0b] py-1.5 border-b border-[rgba(13,12,11,0.06)]">
+                    <span className="font-semibold">{db.migrationName}:</span> {db.hasDestructiveOperations ? 'Locking operation' : 'Additive change'}
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="text-slate-500 font-mono py-1">No schema migrations</div>
+              <p className="text-[rgba(13,12,11,0.4)] italic py-1">No schema migrations</p>
             )}
-          </motion.div>
+          </div>
         </div>
-      </motion.div>
+      </section>
 
-      {/* 2. RISK ASSESSMENT & HINDSIGHT HISTORICAL RECALL */}
+      {/* 2. Risk Assessment & Historical Memory Comparison */}
       {risk && (
-        <AnimatePresence>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.35 }}
-            className="space-y-5"
-          >
-            {/* Risk Level Banner */}
-            <div className={`p-4 sm:p-5 rounded-2xl border backdrop-blur-md ${
-              risk.riskLevel === 'CRITICAL' 
-                ? 'bg-red-950/25 border-red-800/60 text-red-200' 
-                : risk.riskLevel === 'HIGH'
-                ? 'bg-amber-950/25 border-amber-800/60 text-amber-200'
-                : 'bg-emerald-950/25 border-emerald-800/60 text-emerald-200'
-            }`}>
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                <div className="flex items-start gap-3.5">
-                  <div className={`p-2 rounded-xl mt-0.5 ${
-                    risk.riskLevel === 'CRITICAL' ? 'bg-red-900/40 text-red-400' : 'bg-amber-900/40 text-amber-400'
+        <section className="space-y-8">
+          {/* Risk Evaluation Banner */}
+          <div className={`studio-card p-6 md:p-8 ${
+            risk.riskLevel === 'CRITICAL' 
+              ? 'bg-[#fff5f5] border-[#fed7d7]' 
+              : 'bg-[#fafaf8] border-[rgba(13,12,11,0.12)]'
+          }`}>
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+              <div className="space-y-2 max-w-2xl">
+                <div className="flex items-center gap-2 text-xs font-mono">
+                  <span className={`font-semibold tracking-wider uppercase ${
+                    risk.riskLevel === 'CRITICAL' ? 'text-red-700' : 'text-[#0d0c0b]'
                   }`}>
-                    <ShieldAlert className="h-6 w-6" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs uppercase tracking-wider px-2 py-0.5 rounded bg-black/40 border border-white/10 font-mono">
-                        {risk.riskLevel} RISK PRE-FLIGHT ALERT
-                      </span>
-                      <span className="text-xs font-mono px-2 py-0.5 rounded bg-black/40 border border-white/10 text-amber-300">
-                        {risk.confidence}% Pattern Confidence
-                      </span>
-                    </div>
-                    <h3 className="text-base font-bold text-white mt-1.5">
-                      {risk.headline}
-                    </h3>
-                    <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                      {risk.summary}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="sm:text-right shrink-0">
-                  <span className="text-[11px] font-mono text-slate-400 block">Recommended Rollout</span>
-                  <span className="text-xs font-mono font-bold text-amber-300 bg-amber-950/80 px-3 py-1 rounded-lg border border-amber-800/60 inline-block mt-1">
-                    {risk.recommendedStrategy}
+                    {risk.riskLevel} Risk Evaluation
                   </span>
+                  <span className="text-[rgba(13,12,11,0.3)]">&middot;</span>
+                  <span className="text-[rgba(13,12,11,0.6)]">{risk.confidence}% pattern confidence</span>
                 </div>
+
+                <h3 className="text-xl font-medium text-[#0d0c0b] tracking-tight">
+                  {risk.headline}
+                </h3>
+
+                <p className="text-sm text-[rgba(13,12,11,0.7)] leading-relaxed">
+                  {risk.summary}
+                </p>
               </div>
-            </div>
 
-            {/* Historical Memory Comparison (The Core Story Experience) */}
-            {risk.historicalComparison && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="rounded-2xl border border-amber-800/50 bg-[#121927]/90 backdrop-blur-xl p-5 sm:p-6 shadow-xl shadow-black/30"
-              >
-                <div className="flex items-center justify-between pb-3.5 border-b border-slate-800/80">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                      <BrainCircuit className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-white text-sm">
-                        Hindsight Long-Term Memory Recall: Deployment #{risk.historicalComparison.similarDeploymentNumber}
-                      </h4>
-                      <p className="text-[11px] text-slate-400">
-                        Organizational incident memory recalled based on dependency and connection parameters.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/50">
-                      {risk.historicalComparison.similarityScore}% Match
-                    </span>
-                    {onViewHistoricalDeployment && (
-                      <button
-                        onClick={() => onViewHistoricalDeployment(risk.historicalComparison!.similarDeploymentNumber)}
-                        className="text-xs text-slate-400 hover:text-amber-300 flex items-center gap-1 underline cursor-pointer"
-                      >
-                        Inspect Deployment #1 <ExternalLink className="h-3 w-3" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                  {/* What Happened Then */}
-                  <motion.div whileHover={{ y: -2 }} className="space-y-2.5 p-4 rounded-xl bg-slate-900/80 border border-red-900/40">
-                    <div className="font-bold text-red-300 flex items-center gap-1.5 pb-1 border-b border-red-900/30">
-                      <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
-                      <span>What Happened in Deployment #{risk.historicalComparison.similarDeploymentNumber}</span>
-                    </div>
-
-                    <div className="space-y-2 leading-relaxed">
-                      <div>
-                        <span className="text-slate-400 font-medium">What Changed: </span>
-                        <span className="text-slate-200 font-mono">{risk.historicalComparison.whatChangedThen}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">What Failed: </span>
-                        <span className="text-red-200">{risk.historicalComparison.whatFailedThen}</span>
-                      </div>
-                      <div>
-                        <span className="text-slate-400 font-medium">Root Cause: </span>
-                        <span className="text-slate-300 font-mono">{risk.historicalComparison.rootCauseThen}</span>
-                      </div>
-                      <div className="pt-1">
-                        <span className="text-slate-400 font-medium">Verified Resolution: </span>
-                        <span className="text-emerald-300 font-medium">{risk.historicalComparison.resolutionThen}</span>
-                      </div>
-                    </div>
-                  </motion.div>
-
-                  {/* What Is Different Now */}
-                  <motion.div whileHover={{ y: -2 }} className="space-y-2.5 p-4 rounded-xl bg-slate-900/80 border border-slate-800/90">
-                    <div className="font-bold text-amber-300 flex items-center gap-1.5 pb-1 border-b border-slate-800">
-                      <Database className="h-4 w-4 text-amber-400 shrink-0" />
-                      <span>Key Differences in Current Deployment #{deployment.number}</span>
-                    </div>
-
-                    <ul className="space-y-2 text-slate-300 list-disc list-inside leading-relaxed">
-                      {risk.historicalComparison.keyDifferences.map((diff, idx) => (
-                        <li key={idx}>
-                          <span>{diff}</span>
-                        </li>
-                      ))}
-                    </ul>
-
-                    <div className="pt-2 border-t border-slate-800/80 text-[11px] text-slate-400">
-                      <span className="text-amber-400 font-semibold">Prevention Advice: </span>
-                      {risk.preventionAdvice}
-                    </div>
-                  </motion.div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Blast Radius & Downstream Topology */}
-            <div className="rounded-2xl border border-slate-800/80 bg-[#0d131f]/90 backdrop-blur-xl p-5 sm:p-6 shadow-xl shadow-black/30">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                <h4 className="font-bold text-white text-sm flex items-center gap-2">
-                  <Share2 className="h-4 w-4 text-slate-400" />
-                  <span>Downstream Blast Radius (Cascading Failure Analysis)</span>
-                </h4>
-                <span className="text-xs text-slate-400 font-mono">
-                  {risk.blastRadius.length} Services Evaluated
+              <div className="sm:text-right shrink-0 pt-1">
+                <span className="text-xs text-[rgba(13,12,11,0.5)] font-mono block">Recommended Rollout</span>
+                <span className="inline-block mt-1 text-xs font-mono font-medium px-3 py-1 rounded-full bg-[#0d0c0b] text-white">
+                  {risk.recommendedStrategy}
                 </span>
               </div>
-
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                {risk.blastRadius.map((item, idx) => (
-                  <motion.div
-                    key={idx}
-                    whileHover={{ y: -2 }}
-                    className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80"
-                  >
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="font-bold text-slate-200">{item.service}</span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
-                        item.severity === 'HIGH' ? 'bg-red-950 text-red-300 border border-red-800' : 'bg-amber-950 text-amber-300 border border-amber-800'
-                      }`}>
-                        {item.severity}
-                      </span>
-                    </div>
-                    <div className="text-slate-400 text-[11px] mb-1 font-mono">Path: {item.dependencyPath}</div>
-                    <div className="text-slate-300 text-[11px] leading-snug">{item.potentialImpact}</div>
-                  </motion.div>
-                ))}
-              </div>
             </div>
+          </div>
 
-            {/* 3. PRE-FLIGHT VERIFICATION CHECKLIST (Actionable, executable commands) */}
-            <div className="rounded-2xl border border-slate-800/80 bg-[#0d131f]/90 backdrop-blur-xl p-5 sm:p-6 shadow-xl shadow-black/30">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          {/* Historical Memory Recall Comparison */}
+          {risk.historicalComparison && (
+            <div className="studio-card p-6 md:p-8 space-y-6 bg-white border border-[rgba(13,12,11,0.12)]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-[rgba(13,12,11,0.08)]">
                 <div>
-                  <h4 className="font-bold text-white text-sm flex items-center gap-2">
-                    <Terminal className="h-4 w-4 text-amber-400" />
-                    <span>Pre-Flight Verification Checklist</span>
+                  <h4 className="text-base font-medium text-[#0d0c0b] tracking-tight flex items-center gap-2">
+                    <span>Historical Incident Match: Outage #{risk.historicalComparison.similarDeploymentNumber}</span>
                   </h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Execute and verify these items to prevent repeating the historical incident.
+                  <p className="text-xs text-[rgba(13,12,11,0.6)] mt-0.5">
+                    Hindsight recalled this incident based on PostgreSQL driver TLS 1.3 certificate rejection.
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="w-28 bg-slate-800 h-2 rounded-full overflow-hidden">
-                    <motion.div
-                      className="bg-amber-500 h-full rounded-full"
-                      animate={{ width: `${progressPct}%` }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  </div>
-                  <span className="text-xs font-mono text-slate-300 tabular-nums">
-                    {completedCount}/{checklist.length} Done
+                <div className="flex items-center gap-3 text-xs font-mono">
+                  <span className="px-3 py-1 rounded-full bg-red-100 text-red-800 font-semibold border border-red-200">
+                    {risk.historicalComparison.similarityScore}% Vector Match
                   </span>
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                {checklist.map((item) => (
-                  <motion.div 
-                    key={item.id}
-                    layout
-                    className={`p-3.5 rounded-xl border transition-all ${
-                      item.completed 
-                        ? 'bg-emerald-950/20 border-emerald-800/40 text-slate-300' 
-                        : 'bg-slate-900/80 border-slate-800 text-slate-200'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <label className="flex items-start gap-3 cursor-pointer flex-1">
-                        <input
-                          type="checkbox"
-                          checked={item.completed}
-                          onChange={() => toggleCheckItem(item.id)}
-                          className="mt-1 h-4 w-4 rounded border-slate-700 bg-slate-900 text-amber-500 focus:ring-amber-500 focus:ring-offset-0 cursor-pointer"
-                        />
-                        <span className={`text-xs font-medium leading-relaxed ${item.completed ? 'line-through text-slate-400' : ''}`}>
-                          {item.task}
-                        </span>
-                      </label>
-
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 uppercase shrink-0">
-                        {item.category}
-                      </span>
-                    </div>
-
-                    {item.command && (
-                      <div className="mt-2.5 ml-7 flex items-center justify-between gap-2 p-2 rounded-lg bg-black/60 border border-slate-800 font-mono text-xs text-amber-300">
-                        <code className="truncate">{item.command}</code>
-                        <motion.button
-                          whileTap={{ scale: 0.9 }}
-                          onClick={() => copyToClipboard(item.command!)}
-                          className="px-2 py-1 text-[11px] rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
-                        >
-                          {copiedCommand === item.command ? (
-                            <>
-                              <Check className="h-3 w-3 text-emerald-400" />
-                              <span>Copied</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="h-3 w-3" />
-                              <span>Copy</span>
-                            </>
-                          )}
-                        </motion.button>
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-
-            {/* 4. CONTINUOUS LEARNING LOOP: Outcome & Retain Form */}
-            <div className="rounded-2xl border border-amber-900/50 bg-[#111827]/90 backdrop-blur-xl p-5 sm:p-6 shadow-xl shadow-black/30">
-              <div className="flex items-center gap-2.5 pb-3 border-b border-slate-800">
-                <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  <CheckCircle2 className="h-5 w-5" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-white text-sm">
-                    Continuous Learning Loop: Confirm Outcome & Retain Memory
-                  </h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Record production result. REACTOR will retain the experience and verified fix into Hindsight.
-                  </p>
-                </div>
-              </div>
-
-              {deployment.outcome?.retainedInHindsight ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="mt-4 p-4 rounded-xl bg-emerald-950/30 border border-emerald-800/60 text-emerald-200 text-xs space-y-2"
-                >
-                  <div className="font-bold flex items-center gap-2 text-sm text-emerald-300">
-                    <Check className="h-4 w-4" />
-                    <span>Successfully Retained into Hindsight Memory Bank!</span>
-                  </div>
-                  <div className="font-mono text-slate-300 text-[11px]">
-                    Memory ID: {deployment.outcome.hindsightMemoryId || 'mem-latest'} · Status: {deployment.outcome.status}
-                  </div>
-                  <div className="text-slate-300 text-[11px] leading-relaxed">
-                    Lessons Learned: {deployment.feedback?.lessonsLearned}
-                  </div>
-                </motion.div>
-              ) : (
-                <form onSubmit={handleOutcomeSubmit} className="mt-4 space-y-4 text-xs">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
-                      <label className="block text-slate-400 font-medium mb-1">Deployment Outcome</label>
-                      <select
-                        value={outcomeStatus}
-                        onChange={(e) => setOutcomeStatus(e.target.value as any)}
-                        className="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-slate-200 font-mono text-xs focus:outline-none focus:border-amber-500"
-                      >
-                        <option value="SUCCESS">SUCCESS (Nominal / Verified)</option>
-                        <option value="DEGRADED">DEGRADED (Minor Latency / Retries)</option>
-                        <option value="FAILURE">FAILURE (Rolled Back)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-slate-400 font-medium mb-1">Verifying Engineer</label>
-                      <input
-                        type="text"
-                        value={engineerName}
-                        onChange={(e) => setEngineerName(e.target.value)}
-                        className="w-full rounded-xl bg-slate-900 border border-slate-700 px-3 py-2 text-slate-200 text-xs focus:outline-none focus:border-amber-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-slate-400 font-medium mb-1">Prediction Accuracy</label>
-                      <div className="flex items-center gap-4 pt-2">
-                        <label className="flex items-center gap-1.5 cursor-pointer text-slate-300">
-                          <input
-                            type="radio"
-                            name="accurate"
-                            checked={wasPredictionAccurate}
-                            onChange={() => setWasPredictionAccurate(true)}
-                            className="text-amber-500"
-                          />
-                          Accurate Warning
-                        </label>
-                        <label className="flex items-center gap-1.5 cursor-pointer text-slate-300">
-                          <input
-                            type="radio"
-                            name="accurate"
-                            checked={!wasPredictionAccurate}
-                            onChange={() => setWasPredictionAccurate(false)}
-                            className="text-amber-500"
-                          />
-                          False Positive
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-400 font-medium mb-1">Actual Outcome Notes</label>
-                    <textarea
-                      rows={2}
-                      value={actualOutcomeNotes}
-                      onChange={(e) => setActualOutcomeNotes(e.target.value)}
-                      className="w-full rounded-xl bg-slate-900 border border-slate-700 p-3 text-slate-200 text-xs focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-slate-400 font-medium mb-1">Lessons Learned (Retained for Future Deployments)</label>
-                    <textarea
-                      rows={2}
-                      value={lessonsLearned}
-                      onChange={(e) => setLessonsLearned(e.target.value)}
-                      className="w-full rounded-xl bg-slate-900 border border-slate-700 p-3 text-slate-200 text-xs focus:outline-none focus:border-amber-500"
-                    />
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-                    <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 text-amber-400" />
-                      <span>Writes to Hindsight Memory Bank: </span>
-                      <span className="font-mono text-amber-300">reactor-production-memory</span>
-                    </div>
-
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      type="submit"
-                      disabled={isSubmittingOutcome}
-                      className="flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold rounded-xl bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 shadow-lg shadow-amber-500/25 transition-all cursor-pointer disabled:opacity-50"
+                  {onViewHistoricalDeployment && (
+                    <button
+                      onClick={() => onViewHistoricalDeployment(risk.historicalComparison!.similarDeploymentNumber)}
+                      className="text-[rgba(13,12,11,0.6)] hover:text-[#0d0c0b] flex items-center gap-1 cursor-pointer transition-colors"
                     >
-                      <Check className="h-4 w-4" />
-                      <span>{isSubmittingOutcome ? 'Retaining in Hindsight...' : 'Confirm Outcome & Retain Memory'}</span>
-                    </motion.button>
+                      <span>View Outage Record</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Side-by-Side Comparison */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+                {/* Past Outage */}
+                <div className="space-y-3.5 p-5 rounded-xl bg-[#fff8f8] border border-red-200/80">
+                  <div className="text-red-700 font-semibold text-[11px] uppercase tracking-wider font-mono flex items-center gap-1.5">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    <span>Past Outage (Deployment #{risk.historicalComparison.similarDeploymentNumber})</span>
                   </div>
-                </form>
-              )}
+
+                  <div className="space-y-2 text-[#0d0c0b] leading-relaxed">
+                    <div>
+                      <span className="text-[rgba(13,12,11,0.5)] font-mono">What Changed: </span>
+                      <span>{risk.historicalComparison.whatChangedThen}</span>
+                    </div>
+                    <div>
+                      <span className="text-[rgba(13,12,11,0.5)] font-mono">Outage Impact: </span>
+                      <span className="text-red-800 font-medium">{risk.historicalComparison.whatFailedThen}</span>
+                    </div>
+                    <div>
+                      <span className="text-[rgba(13,12,11,0.5)] font-mono">Root Cause: </span>
+                      <span className="text-[rgba(13,12,11,0.7)]">{risk.historicalComparison.rootCauseThen}</span>
+                    </div>
+                    <div className="pt-2.5 border-t border-red-200/60">
+                      <span className="text-emerald-700 font-mono font-medium">Verified Fix: </span>
+                      <span className="text-[#0d0c0b]">{risk.historicalComparison.resolutionThen}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Current Deployment & Differences */}
+                <div className="space-y-3.5 p-5 rounded-xl bg-[#fafaf8] border border-[rgba(13,12,11,0.12)]">
+                  <div className="text-[#0d0c0b] font-semibold text-[11px] uppercase tracking-wider font-mono flex items-center gap-1.5">
+                    <Database className="h-3.5 w-3.5" />
+                    <span>Current Deployment #{deployment.number} Analysis</span>
+                  </div>
+
+                  <ul className="space-y-2 text-[rgba(13,12,11,0.8)] list-disc list-inside leading-relaxed">
+                    {risk.historicalComparison.keyDifferences.map((diff, idx) => (
+                      <li key={idx}>{diff}</li>
+                    ))}
+                  </ul>
+
+                  <div className="pt-2.5 border-t border-[rgba(13,12,11,0.08)] text-[rgba(13,12,11,0.7)] leading-relaxed">
+                    <span className="text-[#0d0c0b] font-medium">Preventative Advice: </span>
+                    {risk.preventionAdvice}
+                  </div>
+                </div>
+              </div>
             </div>
-          </motion.div>
-        </AnimatePresence>
+          )}
+
+          {/* Blast Radius Analysis */}
+          <div className="studio-card p-6 md:p-8 space-y-5 bg-white border border-[rgba(13,12,11,0.12)]">
+            <div className="flex items-center justify-between pb-4 border-b border-[rgba(13,12,11,0.08)]">
+              <h4 className="text-base font-medium text-[#0d0c0b] tracking-tight flex items-center gap-2">
+                <Share2 className="h-4 w-4 text-[rgba(13,12,11,0.5)]" />
+                <span>Downstream Blast Radius</span>
+              </h4>
+              <span className="text-xs text-[rgba(13,12,11,0.5)] font-mono">
+                {risk.blastRadius.length} downstream services evaluated
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 text-xs">
+              {risk.blastRadius.map((item, idx) => (
+                <div key={idx} className="p-4 rounded-xl bg-[#fafaf8] border border-[rgba(13,12,11,0.1)] space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-[#0d0c0b]">{item.service}</span>
+                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
+                      item.severity === 'HIGH' ? 'text-red-800 bg-red-100' : 'text-amber-800 bg-amber-100'
+                    }`}>
+                      {item.severity}
+                    </span>
+                  </div>
+                  <div className="text-[rgba(13,12,11,0.5)] font-mono text-[11px]">{item.dependencyPath}</div>
+                  <div className="text-[rgba(13,12,11,0.8)] leading-snug">{item.potentialImpact}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 3. Pre-Flight Verification Checklist */}
+          <div className="studio-card p-6 md:p-8 space-y-5 bg-white border border-[rgba(13,12,11,0.12)]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[rgba(13,12,11,0.08)]">
+              <div>
+                <h4 className="text-base font-medium text-[#0d0c0b] tracking-tight flex items-center gap-2">
+                  <Terminal className="h-4 w-4 text-[rgba(13,12,11,0.5)]" />
+                  <span>Pre-Flight Verification Checklist</span>
+                </h4>
+                <p className="text-xs text-[rgba(13,12,11,0.6)] mt-0.5">
+                  Execute these checks before rollout to prevent repeating the historical incident.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-24 bg-[rgba(13,12,11,0.1)] h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-[#0a0908] h-full rounded-full transition-all duration-300"
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+                <span className="text-xs font-mono text-[rgba(13,12,11,0.6)] tabular-nums">
+                  {completedCount}/{checklist.length} verified
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {checklist.map((item) => (
+                <div 
+                  key={item.id}
+                  className={`p-3.5 rounded-xl border transition-colors ${
+                    item.completed 
+                      ? 'bg-emerald-50/50 border-emerald-200' 
+                      : 'bg-[#fafaf8] border-[rgba(13,12,11,0.1)]'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <label className="flex items-start gap-3 cursor-pointer flex-1">
+                      <input
+                        type="checkbox"
+                        checked={item.completed}
+                        onChange={() => toggleCheckItem(item.id)}
+                        className="mt-0.5 h-4 w-4 rounded border-[rgba(13,12,11,0.2)] text-[#0a0908] focus:ring-0 cursor-pointer accent-[#0a0908]"
+                      />
+                      <span className={`text-xs ${item.completed ? 'line-through text-[rgba(13,12,11,0.4)]' : 'text-[#0d0c0b] font-medium'}`}>
+                        {item.task}
+                      </span>
+                    </label>
+
+                    <span className="text-[10px] font-mono text-[rgba(13,12,11,0.45)] uppercase shrink-0">
+                      {item.category}
+                    </span>
+                  </div>
+
+                  {item.command && (
+                    <div className="mt-2.5 ml-7 flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-[#f4f2ee] border border-[rgba(13,12,11,0.08)] font-mono text-xs text-[#0d0c0b]">
+                      <code className="truncate">{item.command}</code>
+                      <button
+                        onClick={() => copyToClipboard(item.command!)}
+                        className="text-[rgba(13,12,11,0.6)] hover:text-[#0d0c0b] px-2 py-0.5 rounded text-[11px] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                      >
+                        {copiedCommand === item.command ? (
+                          <>
+                            <Check className="h-3 w-3 text-emerald-600" />
+                            <span>Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 4. Record Outcome & Retain into Hindsight */}
+          <div className="studio-card p-6 md:p-8 space-y-5 bg-white border border-[rgba(13,12,11,0.12)]">
+            <div className="pb-4 border-b border-[rgba(13,12,11,0.08)]">
+              <h4 className="text-base font-medium text-[#0d0c0b] tracking-tight">
+                Record Deployment Outcome &amp; Retain Knowledge
+              </h4>
+              <p className="text-xs text-[rgba(13,12,11,0.6)] mt-0.5">
+                When deployment completes, retain the outcome and verified fix into Hindsight organizational memory.
+              </p>
+            </div>
+
+            {deployment.outcome?.retainedInHindsight ? (
+              <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs space-y-1.5">
+                <div className="font-semibold text-emerald-800 flex items-center gap-1.5">
+                  <Check className="h-4 w-4" />
+                  <span>Retained in Hindsight Memory Bank</span>
+                </div>
+                <div className="text-[rgba(13,12,11,0.5)] font-mono text-[11px]">
+                  Memory ID: {deployment.outcome.hindsightMemoryId || 'mem-latest'} &middot; Outcome: {deployment.outcome.status}
+                </div>
+                <p className="text-[#0d0c0b] text-xs leading-relaxed">
+                  Lessons learned: {deployment.feedback?.lessonsLearned}
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleOutcomeSubmit} className="space-y-5 text-xs">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                  <div>
+                    <label className="block text-[rgba(13,12,11,0.7)] font-medium mb-1.5">Outcome Status</label>
+                    <select
+                      value={outcomeStatus}
+                      onChange={(e) => setOutcomeStatus(e.target.value as any)}
+                      className="w-full rounded-lg bg-[#fafaf8] border border-[rgba(13,12,11,0.14)] px-3 py-2 text-[#0d0c0b] font-mono text-xs focus:outline-none focus:border-[#0d0c0b]"
+                    >
+                      <option value="SUCCESS">SUCCESS (Verified nominal)</option>
+                      <option value="DEGRADED">DEGRADED (Issues observed)</option>
+                      <option value="FAILURE">FAILURE (Rolled back)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[rgba(13,12,11,0.7)] font-medium mb-1.5">Verifying Engineer</label>
+                    <input
+                      type="text"
+                      value={engineerName}
+                      onChange={(e) => setEngineerName(e.target.value)}
+                      className="w-full rounded-lg bg-[#fafaf8] border border-[rgba(13,12,11,0.14)] px-3 py-2 text-[#0d0c0b] text-xs focus:outline-none focus:border-[#0d0c0b]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[rgba(13,12,11,0.7)] font-medium mb-1.5">Prediction Accuracy</label>
+                    <div className="flex items-center gap-4 pt-2">
+                      <label className="flex items-center gap-1.5 cursor-pointer text-[#0d0c0b]">
+                        <input
+                          type="radio"
+                          name="accurate"
+                          checked={wasPredictionAccurate}
+                          onChange={() => setWasPredictionAccurate(true)}
+                          className="accent-[#0a0908]"
+                        />
+                        Accurate Warning
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer text-[rgba(13,12,11,0.6)]">
+                        <input
+                          type="radio"
+                          name="accurate"
+                          checked={!wasPredictionAccurate}
+                          onChange={() => setWasPredictionAccurate(false)}
+                          className="accent-[#0a0908]"
+                        />
+                        False Positive
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[rgba(13,12,11,0.7)] font-medium mb-1.5">Actual Outcome Notes</label>
+                  <textarea
+                    rows={2}
+                    value={actualOutcomeNotes}
+                    onChange={(e) => setActualOutcomeNotes(e.target.value)}
+                    className="w-full rounded-lg bg-[#fafaf8] border border-[rgba(13,12,11,0.14)] p-3 text-[#0d0c0b] text-xs focus:outline-none focus:border-[#0d0c0b]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[rgba(13,12,11,0.7)] font-medium mb-1.5">Lessons Learned for Future Deployments</label>
+                  <textarea
+                    rows={2}
+                    value={lessonsLearned}
+                    onChange={(e) => setLessonsLearned(e.target.value)}
+                    className="w-full rounded-lg bg-[#fafaf8] border border-[rgba(13,12,11,0.14)] p-3 text-[#0d0c0b] text-xs focus:outline-none focus:border-[#0d0c0b]"
+                  />
+                </div>
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+                  <div className="text-[rgba(13,12,11,0.5)] text-[11px] font-mono flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-[rgba(13,12,11,0.4)]" />
+                    <span>Target memory bank: reactor-core</span>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmittingOutcome}
+                    className="pill text-xs !h-9 !px-5"
+                  >
+                    {isSubmittingOutcome ? 'Retaining...' : 'Confirm Outcome & Retain into Hindsight'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </section>
       )}
-    </motion.div>
+    </div>
   );
 };
