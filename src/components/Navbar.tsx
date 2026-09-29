@@ -11,6 +11,8 @@ interface NavbarProps {
     memoryCount: number;
     bankCount: number;
   };
+  viewMode: 'friendly' | 'technical';
+  setViewMode: (mode: 'friendly' | 'technical') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -19,7 +21,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenCustomModal,
   onRunCoreStory,
   isAnalyzing,
-  hindsightStats
+  hindsightStats,
+  viewMode,
+  setViewMode
 }) => {
   const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -41,7 +45,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         style={{ transform: `scaleX(${scrollProgress})` }} 
       />
 
-      <header className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between gap-4 px-6 md:px-12 py-3.5 bg-[#f2f0ec]/90 backdrop-blur-md border-b border-[rgba(13,12,11,0.08)]">
+      <header className="fixed top-0 left-0 right-0 z-40 flex items-center justify-between gap-4 px-4 md:px-10 py-3 bg-white/90 backdrop-blur-xl border-b border-[rgba(13,12,11,0.08)] shadow-sm">
         {/* Brand Mark with Cast & Render Star */}
         <div className="flex items-center gap-3">
           <button 
@@ -51,90 +55,116 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span className="text-base text-[#0d0c0b] opacity-80 group-hover:rotate-45 transition-transform duration-300" aria-hidden="true">
               &#10037;
             </span>
-            <span className="text-[15px] font-medium tracking-tight text-[#0d0c0b]">
+            <span className="text-[15px] font-semibold tracking-tight text-[#0d0c0b]">
               REACTOR
             </span>
-            <span className="hidden sm:inline-block text-xs text-[rgba(13,12,11,0.45)] tracking-normal pl-1 border-l border-[rgba(13,12,11,0.15)]">
-              DevOps Memory
+            <span className="hidden sm:inline-block text-[11px] text-[rgba(13,12,11,0.5)] font-mono pl-2 border-l border-[rgba(13,12,11,0.15)]">
+              Safety Guard
             </span>
           </button>
         </div>
 
-        {/* Navigation Tabs - Clean, airy, unattached */}
-        <nav className="flex items-center gap-6 md:gap-8">
+        {/* Navigation Tabs - Friendly + Tech */}
+        <nav className="hidden md:flex items-center gap-5 lg:gap-7">
           <button
             onClick={() => setActiveTab('pipeline')}
-            className={`text-[14px] tracking-[-0.008em] transition-all cursor-pointer ${
+            className={`text-xs tracking-tight transition-all cursor-pointer flex items-center gap-1.5 py-1 ${
               activeTab === 'pipeline'
-                ? 'text-[#0d0c0b] font-medium underline underline-offset-8 decoration-[1.5px]'
+                ? 'text-[#0d0c0b] font-semibold border-b-2 border-[#0d0c0b]'
                 : 'text-[rgba(13,12,11,0.6)] hover:text-[#0d0c0b]'
             }`}
           >
-            Pre-Flight Inspector
+            <span>Pre-Flight Check</span>
           </button>
 
           <button
             onClick={() => setActiveTab('memory')}
-            className={`text-[14px] tracking-[-0.008em] transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`text-xs tracking-tight transition-all cursor-pointer flex items-center gap-1.5 py-1 ${
               activeTab === 'memory'
-                ? 'text-[#0d0c0b] font-medium underline underline-offset-8 decoration-[1.5px]'
+                ? 'text-[#0d0c0b] font-semibold border-b-2 border-[#0d0c0b]'
                 : 'text-[rgba(13,12,11,0.6)] hover:text-[#0d0c0b]'
             }`}
           >
-            <span>Hindsight Memory</span>
-            <span className="text-[11px] font-mono px-1.5 py-0.5 rounded-full bg-[rgba(13,12,11,0.06)] text-[rgba(13,12,11,0.7)]">
+            <span>Memory Vault</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-[rgba(13,12,11,0.08)] text-[rgba(13,12,11,0.7)]">
               {hindsightStats.memoryCount}
             </span>
           </button>
 
           <button
             onClick={() => setActiveTab('history')}
-            className={`text-[14px] tracking-[-0.008em] transition-all cursor-pointer ${
+            className={`text-xs tracking-tight transition-all cursor-pointer flex items-center gap-1.5 py-1 ${
               activeTab === 'history'
-                ? 'text-[#0d0c0b] font-medium underline underline-offset-8 decoration-[1.5px]'
+                ? 'text-[#0d0c0b] font-semibold border-b-2 border-[#0d0c0b]'
                 : 'text-[rgba(13,12,11,0.6)] hover:text-[#0d0c0b]'
             }`}
           >
-            Audit Ledger
+            <span>Past Incidents</span>
           </button>
 
           <button
             onClick={() => setActiveTab('agent')}
-            className={`text-[14px] tracking-[-0.008em] transition-all cursor-pointer ${
+            className={`text-xs tracking-tight transition-all cursor-pointer flex items-center gap-1.5 py-1 ${
               activeTab === 'agent'
-                ? 'text-[#0d0c0b] font-medium underline underline-offset-8 decoration-[1.5px]'
+                ? 'text-[#0d0c0b] font-semibold border-b-2 border-[#0d0c0b]'
                 : 'text-[rgba(13,12,11,0.6)] hover:text-[#0d0c0b]'
             }`}
           >
-            Agent Chat
+            <span>DevOps AI Chat</span>
           </button>
         </nav>
 
-        {/* Action Controls */}
-        <div className="flex items-center gap-3">
+        {/* Action Controls & Lens Switcher */}
+        <div className="flex items-center gap-2.5">
+          {/* Plain English vs Tech Lens Toggle */}
+          <div className="flex items-center bg-[#f0eee9] p-0.5 rounded-full border border-[rgba(13,12,11,0.12)] text-[11px] font-sans">
+            <button
+              onClick={() => setViewMode('friendly')}
+              className={`px-2.5 py-1 rounded-full transition-all cursor-pointer flex items-center gap-1 ${
+                viewMode === 'friendly'
+                  ? 'bg-white text-[#0d0c0b] font-medium shadow-sm'
+                  : 'text-[rgba(13,12,11,0.55)] hover:text-[#0d0c0b]'
+              }`}
+              title="Show simple plain-English explanations and business impact"
+            >
+              <span>Plain English</span>
+            </button>
+            <button
+              onClick={() => setViewMode('technical')}
+              className={`px-2.5 py-1 rounded-full transition-all cursor-pointer flex items-center gap-1 ${
+                viewMode === 'technical'
+                  ? 'bg-[#0d0c0b] text-white font-medium shadow-sm'
+                  : 'text-[rgba(13,12,11,0.55)] hover:text-[#0d0c0b]'
+              }`}
+              title="Show deep technical specifications, commands, and architecture"
+            >
+              <span>Tech Specs</span>
+            </button>
+          </div>
+
           <button
             onClick={onOpenCustomModal}
-            className="hidden lg:inline-flex pill-outline !h-9 !px-3.5 text-xs gap-1.5"
+            className="hidden xl:inline-flex pill-outline !h-8 !px-3 text-xs gap-1"
             title="Ingest a custom PR / deployment payload"
           >
-            <Plus className="w-3.5 h-3.5" />
-            <span>Ingest PR</span>
+            <Plus className="w-3 h-3" />
+            <span>Test PR</span>
           </button>
 
           <button
             onClick={onRunCoreStory}
             disabled={isAnalyzing}
-            className="pill !h-9 !px-4 text-xs gap-2"
+            className="pill !h-8.5 !px-3.5 text-xs gap-1.5"
           >
             {isAnalyzing ? (
               <>
                 <span className="h-3 w-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Recalling...</span>
+                <span>Checking...</span>
               </>
             ) : (
               <>
                 <Play className="w-3 h-3 fill-white" />
-                <span>Test Deployment #27</span>
+                <span>Demo Outage #27</span>
               </>
             )}
           </button>

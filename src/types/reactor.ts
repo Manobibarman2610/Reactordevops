@@ -60,11 +60,13 @@ export interface BlastRadiusItem {
   severity: 'LOW' | 'MEDIUM' | 'HIGH';
   dependencyPath: string;
   potentialImpact: string;
+  userFacingImpact?: string;
 }
 
 export interface VerificationCheckItem {
   id: string;
   task: string;
+  plainEnglishTask?: string;
   command?: string;
   completed: boolean;
   category: 'runtime_config' | 'database' | 'compatibility' | 'downstream';
@@ -75,6 +77,11 @@ export interface RiskAssessment {
   confidence: number; // 0 to 100
   headline: string;
   summary: string;
+  plainEnglishHeadline?: string;
+  plainEnglishSummary?: string;
+  customerImpact?: string;
+  businessRisk?: string;
+  simpleFix?: string;
   historicalComparison?: HistoricalComparison;
   blastRadius: BlastRadiusItem[];
   verificationChecklist: VerificationCheckItem[];

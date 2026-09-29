@@ -79,6 +79,23 @@ export const HindsightExplorer: React.FC<HindsightExplorerProps> = ({
 
   return (
     <div className="space-y-8">
+      {/* Friendly Explainer Banner */}
+      <div className="studio-card p-6 bg-gradient-to-r from-amber-500/10 via-amber-400/5 to-transparent border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <div className="font-semibold text-xs text-[#0d0c0b] flex items-center gap-1.5 font-mono uppercase tracking-wider">
+            <span>How the Team Memory Vault Works</span>
+          </div>
+          <p className="text-xs text-[rgba(13,12,11,0.7)] max-w-2xl leading-relaxed">
+            Whenever a bug or outage is resolved, the root cause and verified fix are stored here. When any engineer creates a new pull request, the system instantly recalls similar past events in under <strong>15ms</strong> to prevent repeat failures.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs font-mono text-[rgba(13,12,11,0.6)] shrink-0">
+          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Active &amp; Indexing</span>
+        </div>
+      </div>
+
       {/* 1. Memory Banks Overview */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -90,7 +107,7 @@ export const HindsightExplorer: React.FC<HindsightExplorerProps> = ({
             className="pill-outline text-xs !h-8 !px-3 gap-1.5"
           >
             <Plus className="h-3.5 w-3.5" />
-            <span>Retain Post-Mortem</span>
+            <span>Save New Incident</span>
           </button>
         </div>
 
@@ -108,7 +125,7 @@ export const HindsightExplorer: React.FC<HindsightExplorerProps> = ({
               <div className="flex items-center justify-between text-xs">
                 <span className="font-mono font-semibold text-[#0d0c0b]">{bank.id}</span>
                 <span className="text-[rgba(13,12,11,0.5)] font-mono text-[11px] tabular-nums">
-                  {bank.memoryCount} memories
+                  {bank.memoryCount} incidents stored
                 </span>
               </div>
 
@@ -134,10 +151,10 @@ export const HindsightExplorer: React.FC<HindsightExplorerProps> = ({
           <div>
             <h3 className="text-base font-medium text-[#0d0c0b] tracking-tight flex items-center gap-2">
               <Search className="h-4 w-4 text-[rgba(13,12,11,0.6)]" />
-              <span>Semantic Recall Tester</span>
+              <span>Search Memory in Plain English</span>
             </h3>
             <p className="text-xs text-[rgba(13,12,11,0.6)] mt-0.5">
-              Query organizational memory using error logs, package names, or configuration symptoms.
+              Ask questions or search symptoms like you would ask a teammate (e.g. "why did checkouts fail" or "database locked").
             </p>
           </div>
 
@@ -156,8 +173,8 @@ export const HindsightExplorer: React.FC<HindsightExplorerProps> = ({
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="e.g. 'pg upgrade TLS RDS pool starvation' or 'prisma migration lock'"
-              className="w-full rounded-xl bg-[#fafaf8] border border-[rgba(13,12,11,0.14)] pl-10 pr-4 py-2.5 text-xs text-[#0d0c0b] font-mono focus:outline-none focus:border-[#0d0c0b]"
+              placeholder="e.g. 'why did checkouts fail', 'database timeout', 'server memory spike'..."
+              className="w-full rounded-xl bg-[#fafaf8] border border-[rgba(13,12,11,0.14)] pl-10 pr-4 py-2.5 text-xs text-[#0d0c0b] focus:outline-none focus:border-[#0d0c0b]"
             />
           </div>
 
@@ -166,25 +183,25 @@ export const HindsightExplorer: React.FC<HindsightExplorerProps> = ({
             disabled={isLoadingRecall}
             className="pill text-xs !h-10 !px-5 shrink-0"
           >
-            {isLoadingRecall ? 'Querying...' : 'Query Memory'}
+            {isLoadingRecall ? 'Searching...' : 'Search Memory'}
           </button>
         </form>
 
         {/* Suggested Queries */}
         <div className="flex flex-wrap items-center gap-2 text-xs text-[rgba(13,12,11,0.6)] pt-1">
-          <span className="text-[11px] text-[rgba(13,12,11,0.45)] font-mono">Suggested:</span>
+          <span className="text-[11px] text-[rgba(13,12,11,0.45)] font-mono">Try searching:</span>
           {[
-            'pg postgres driver RDS TLS pool exhaustion',
-            'Redis connection timeout circuit breaker',
-            'Prisma migration lock table',
-            'Kubernetes OOMKilled Node 20 heap limit',
-            'Stripe webhook signature raw body'
+            'why did checkouts crash after database update',
+            'users getting randomly logged out',
+            'database table locked for 47 seconds',
+            'server crashing out of memory',
+            'stripe credit card payment signature failure'
           ].map((preset, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => setSearchQuery(preset)}
-              className="text-[11px] font-mono px-2.5 py-1 rounded-full bg-[#f4f2ee] hover:bg-[#eae7e0] text-[#0d0c0b] transition-colors cursor-pointer"
+              className="text-[11px] px-2.5 py-1 rounded-full bg-[#f4f2ee] hover:bg-[#eae7e0] text-[#0d0c0b] transition-colors cursor-pointer"
             >
               {preset}
             </button>

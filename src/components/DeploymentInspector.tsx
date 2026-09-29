@@ -29,13 +29,15 @@ interface DeploymentInspectorProps {
   }) => Promise<void>;
   isSubmittingOutcome: boolean;
   onViewHistoricalDeployment?: (depNumber: number) => void;
+  viewMode: 'friendly' | 'technical';
 }
 
 export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
   deployment,
   onRecordOutcome,
   isSubmittingOutcome,
-  onViewHistoricalDeployment
+  onViewHistoricalDeployment,
+  viewMode
 }) => {
   const [copiedCommand, setCopiedCommand] = useState<string | null>(null);
   const [checklist, setChecklist] = useState<VerificationCheckItem[]>(
@@ -84,13 +86,86 @@ export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
 
   return (
     <div className="space-y-8">
+      {/* 0. Executive Plain-English Summary (Always clear and human-friendly) */}
+      <section className="studio-card p-6 md:p-8 bg-gradient-to-br from-white to-[#faf8f5] border border-[rgba(13,12,11,0.12)] space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[rgba(13,12,11,0.08)]">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-xs uppercase tracking-wider text-[#0d0c0b] font-mono">
+              Plain English Summary
+            </span>
+            <span className="text-[rgba(13,12,11,0.4)]">&middot;</span>
+            <span className="text-xs text-[rgba(13,12,11,0.6)]">
+              Deployment #{deployment.number} ({deployment.service})
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className={`text-xs font-mono font-medium px-2.5 py-1 rounded-full ${
+              risk?.riskLevel === 'CRITICAL' ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-emerald-100 text-emerald-800'
+            }`}>
+              {risk?.riskLevel === 'CRITICAL' ? 'High Risk Outage Prevented' : 'Standard Risk'}
+            </span>
+          </div>
+        </div>
+
+        {/* Big Human Explanation */}
+        <div className="space-y-3">
+          <h2 className="text-lg md:text-2xl font-medium text-[#0d0c0b] tracking-tight leading-snug">
+            {risk?.plainEnglishHeadline || (
+              risk?.riskLevel === 'CRITICAL'
+                ? 'Warning: This deployment risks crashing checkout and payments for all users'
+                : 'All clear: This deployment looks safe to deploy'
+            )}
+          </h2>
+
+          <p className="text-xs md:text-sm text-[rgba(13,12,11,0.75)] leading-relaxed">
+            {risk?.plainEnglishSummary || risk?.summary || (
+              `An engineer is updating code in the ${deployment.service} service. Hindsight checked past incident records to verify if this change has broken production before.`
+            )}
+          </p>
+        </div>
+
+        {/* Impact Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+          {/* Customer Impact */}
+          <div className="p-3.5 rounded-xl bg-white border border-[rgba(13,12,11,0.08)] space-y-1">
+            <div className="text-[11px] font-mono text-[rgba(13,12,11,0.5)] uppercase">
+              User Experience Impact
+            </div>
+            <div className="text-xs text-[#0d0c0b] font-medium leading-snug">
+              {risk?.customerImpact || 'Users may experience errors or timeouts if deployed without verification.'}
+            </div>
+          </div>
+
+          {/* Business Cost Prevented */}
+          <div className="p-3.5 rounded-xl bg-white border border-[rgba(13,12,11,0.08)] space-y-1">
+            <div className="text-[11px] font-mono text-[rgba(13,12,11,0.5)] uppercase">
+              Business Risk Prevented
+            </div>
+            <div className="text-xs text-[#0d0c0b] font-medium leading-snug">
+              {risk?.businessRisk || 'Avoided unexpected website downtime and customer support escalation.'}
+            </div>
+          </div>
+
+          {/* Simple Fix */}
+          <div className="p-3.5 rounded-xl bg-white border border-[rgba(13,12,11,0.08)] space-y-1">
+            <div className="text-[11px] font-mono text-emerald-800 uppercase">
+              Recommended Fix
+            </div>
+            <div className="text-xs text-[#0d0c0b] font-medium leading-snug">
+              {risk?.simpleFix || 'Complete the pre-flight verification checklist before shipping to 100% of users.'}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* 1. Deployment Ingestion Card */}
       <section className="studio-card p-6 md:p-8 bg-white border border-[rgba(13,12,11,0.12)]">
         {/* Header Details */}
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 pb-6 border-b border-[rgba(13,12,11,0.08)]">
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-2 text-xs text-[rgba(13,12,11,0.5)] font-mono">
-              <span className="font-semibold text-[#0d0c0b]">Deployment #{deployment.number}</span>
+              <span className="font-semibold text-[#0d0c0b]">PR #{deployment.number}</span>
               <span>&middot;</span>
               <span>{deployment.service}</span>
               <span>&middot;</span>
@@ -118,65 +193,87 @@ export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
           </div>
         </div>
 
-        {/* Normalized Changes Grid */}
+        {/* Normalized Changes Grid with Friendly Explanations */}
         <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-8 text-xs">
           {/* Dependencies */}
           <div className="space-y-2.5">
-            <div className="text-[rgba(13,12,11,0.45)] font-semibold text-[11px] uppercase tracking-wider font-mono">
-              Dependencies Modified
+            <div className="flex items-center justify-between">
+              <span className="text-[rgba(13,12,11,0.45)] font-semibold text-[11px] uppercase tracking-wider font-mono">
+                Software Packages (Dependencies)
+              </span>
             </div>
             {deployment.dependencyChanges.length > 0 ? (
               <div className="space-y-2 font-mono">
                 {deployment.dependencyChanges.map((dep, i) => (
-                  <div key={i} className="flex items-center justify-between text-[#0d0c0b] py-1.5 border-b border-[rgba(13,12,11,0.06)]">
-                    <span className="font-semibold">{dep.name}</span>
-                    <span className="text-[rgba(13,12,11,0.6)]">{dep.fromVersion} &rarr; {dep.toVersion}</span>
+                  <div key={i} className="py-2 border-b border-[rgba(13,12,11,0.06)] space-y-1">
+                    <div className="flex items-center justify-between text-[#0d0c0b]">
+                      <span className="font-semibold">{dep.name}</span>
+                      <span className="text-[rgba(13,12,11,0.6)]">{dep.fromVersion} &rarr; {dep.toVersion}</span>
+                    </div>
+                    <div className="text-[11px] text-[rgba(13,12,11,0.55)] font-sans">
+                      {dep.name === 'pg' 
+                        ? 'PostgreSQL database connector tool. Connects the website to the customer database.' 
+                        : dep.name === 'stripe'
+                        ? 'Payment gateway SDK. Handles credit card checkout.'
+                        : 'External library package.'}
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-[rgba(13,12,11,0.4)] italic py-1">No dependency changes</p>
+              <p className="text-[rgba(13,12,11,0.4)] italic py-1">No package changes</p>
             )}
           </div>
 
           {/* Infrastructure */}
           <div className="space-y-2.5">
             <div className="text-[rgba(13,12,11,0.45)] font-semibold text-[11px] uppercase tracking-wider font-mono">
-              Infrastructure &amp; Config
+              Server &amp; Cloud Settings
             </div>
             {deployment.infraChanges.length > 0 || deployment.envVarChanges.length > 0 ? (
               <div className="space-y-2 font-mono">
                 {deployment.infraChanges.map((infra, i) => (
-                  <div key={i} className="text-[#0d0c0b] py-1.5 border-b border-[rgba(13,12,11,0.06)]">
-                    <span className="font-semibold">{infra.component}:</span> {infra.description}
+                  <div key={i} className="text-[#0d0c0b] py-2 border-b border-[rgba(13,12,11,0.06)] space-y-0.5">
+                    <div><span className="font-semibold">{infra.component}:</span> {infra.description}</div>
+                    <div className="text-[11px] text-[rgba(13,12,11,0.55)] font-sans">
+                      Changes server memory and CPU quotas in the cloud container.
+                    </div>
                   </div>
                 ))}
                 {deployment.envVarChanges.map((env, i) => (
-                  <div key={i} className="text-[#0d0c0b] py-1.5 border-b border-[rgba(13,12,11,0.06)]">
-                    <span className="font-semibold">Env {env.key}:</span> {env.action}
+                  <div key={i} className="text-[#0d0c0b] py-2 border-b border-[rgba(13,12,11,0.06)] space-y-0.5">
+                    <div><span className="font-semibold">Env {env.key}:</span> {env.action}</div>
+                    <div className="text-[11px] text-[rgba(13,12,11,0.55)] font-sans">
+                      Configuration setting that alters timeout or connection behavior.
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-[rgba(13,12,11,0.4)] italic py-1">Standard container configuration</p>
+              <p className="text-[rgba(13,12,11,0.4)] italic py-1">Standard server configuration</p>
             )}
           </div>
 
           {/* Database */}
           <div className="space-y-2.5">
             <div className="text-[rgba(13,12,11,0.45)] font-semibold text-[11px] uppercase tracking-wider font-mono">
-              Database Migrations
+              Database Table Updates
             </div>
             {deployment.databaseChanges.length > 0 ? (
               <div className="space-y-2 font-mono">
                 {deployment.databaseChanges.map((db, i) => (
-                  <div key={i} className="text-[#0d0c0b] py-1.5 border-b border-[rgba(13,12,11,0.06)]">
-                    <span className="font-semibold">{db.migrationName}:</span> {db.hasDestructiveOperations ? 'Locking operation' : 'Additive change'}
+                  <div key={i} className="text-[#0d0c0b] py-2 border-b border-[rgba(13,12,11,0.06)] space-y-0.5">
+                    <div><span className="font-semibold">{db.migrationName}:</span> {db.hasDestructiveOperations ? 'Locking operation' : 'Additive change'}</div>
+                    <div className="text-[11px] text-[rgba(13,12,11,0.55)] font-sans">
+                      {db.hasDestructiveOperations 
+                        ? 'Warning: May freeze database tables while rows are being updated.'
+                        : 'Adds new database columns without locking existing data.'}
+                    </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-[rgba(13,12,11,0.4)] italic py-1">No schema migrations</p>
+              <p className="text-[rgba(13,12,11,0.4)] italic py-1">No database schema changes</p>
             )}
           </div>
         </div>
@@ -213,9 +310,9 @@ export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
               </div>
 
               <div className="sm:text-right shrink-0 pt-1">
-                <span className="text-xs text-[rgba(13,12,11,0.5)] font-mono block">Recommended Rollout</span>
+                <span className="text-xs text-[rgba(13,12,11,0.5)] font-mono block">Recommended Safe Rollout</span>
                 <span className="inline-block mt-1 text-xs font-mono font-medium px-3 py-1 rounded-full bg-[#0d0c0b] text-white">
-                  {risk.recommendedStrategy}
+                  {risk.recommendedStrategy === 'CANARY_5_PERCENT' ? 'Canary (5% Traffic First)' : risk.recommendedStrategy}
                 </span>
               </div>
             </div>
@@ -230,7 +327,7 @@ export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
                     <span>Historical Incident Match: Outage #{risk.historicalComparison.similarDeploymentNumber}</span>
                   </h4>
                   <p className="text-xs text-[rgba(13,12,11,0.6)] mt-0.5">
-                    Hindsight recalled this incident based on PostgreSQL driver TLS 1.3 certificate rejection.
+                    Hindsight recalled this incident because the database connection update matches a real outage from December.
                   </p>
                 </div>
 
@@ -301,31 +398,43 @@ export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
             </div>
           )}
 
-          {/* Blast Radius Analysis */}
+          {/* Blast Radius Analysis (With User Facing Impact) */}
           <div className="studio-card p-6 md:p-8 space-y-5 bg-white border border-[rgba(13,12,11,0.12)]">
-            <div className="flex items-center justify-between pb-4 border-b border-[rgba(13,12,11,0.08)]">
-              <h4 className="text-base font-medium text-[#0d0c0b] tracking-tight flex items-center gap-2">
-                <Share2 className="h-4 w-4 text-[rgba(13,12,11,0.5)]" />
-                <span>Downstream Blast Radius</span>
-              </h4>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[rgba(13,12,11,0.08)] gap-2">
+              <div>
+                <h4 className="text-base font-medium text-[#0d0c0b] tracking-tight flex items-center gap-2">
+                  <Share2 className="h-4 w-4 text-[rgba(13,12,11,0.5)]" />
+                  <span>Downstream Blast Radius &middot; Who Gets Affected?</span>
+                </h4>
+                <p className="text-xs text-[rgba(13,12,11,0.6)] mt-0.5">
+                  If this code change fails, here is what stops working for customers and employees.
+                </p>
+              </div>
               <span className="text-xs text-[rgba(13,12,11,0.5)] font-mono">
-                {risk.blastRadius.length} downstream services evaluated
+                {risk.blastRadius.length} services connected
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 text-xs">
               {risk.blastRadius.map((item, idx) => (
-                <div key={idx} className="p-4 rounded-xl bg-[#fafaf8] border border-[rgba(13,12,11,0.1)] space-y-2">
+                <div key={idx} className="p-4 rounded-xl bg-[#fafaf8] border border-[rgba(13,12,11,0.1)] space-y-2.5">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-[#0d0c0b]">{item.service}</span>
                     <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full ${
                       item.severity === 'HIGH' ? 'text-red-800 bg-red-100' : 'text-amber-800 bg-amber-100'
                     }`}>
-                      {item.severity}
+                      {item.severity} SEVERITY
                     </span>
                   </div>
+
+                  {item.userFacingImpact && (
+                    <div className="text-xs font-medium text-[#0d0c0b] bg-white p-2 rounded-lg border border-[rgba(13,12,11,0.06)]">
+                      Impact: {item.userFacingImpact}
+                    </div>
+                  )}
+
                   <div className="text-[rgba(13,12,11,0.5)] font-mono text-[11px]">{item.dependencyPath}</div>
-                  <div className="text-[rgba(13,12,11,0.8)] leading-snug">{item.potentialImpact}</div>
+                  <div className="text-[rgba(13,12,11,0.7)] leading-snug">{item.potentialImpact}</div>
                 </div>
               ))}
             </div>
@@ -337,10 +446,10 @@ export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
               <div>
                 <h4 className="text-base font-medium text-[#0d0c0b] tracking-tight flex items-center gap-2">
                   <Terminal className="h-4 w-4 text-[rgba(13,12,11,0.5)]" />
-                  <span>Pre-Flight Verification Checklist</span>
+                  <span>Pre-Flight Safety Checklist</span>
                 </h4>
                 <p className="text-xs text-[rgba(13,12,11,0.6)] mt-0.5">
-                  Execute these checks before rollout to prevent repeating the historical incident.
+                  Run these verification steps to prove the code is safe before rolling out to customers.
                 </p>
               </div>
 
@@ -375,9 +484,16 @@ export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
                         onChange={() => toggleCheckItem(item.id)}
                         className="mt-0.5 h-4 w-4 rounded border-[rgba(13,12,11,0.2)] text-[#0a0908] focus:ring-0 cursor-pointer accent-[#0a0908]"
                       />
-                      <span className={`text-xs ${item.completed ? 'line-through text-[rgba(13,12,11,0.4)]' : 'text-[#0d0c0b] font-medium'}`}>
-                        {item.task}
-                      </span>
+                      <div className="space-y-0.5">
+                        <div className={`text-xs ${item.completed ? 'line-through text-[rgba(13,12,11,0.4)]' : 'text-[#0d0c0b] font-semibold'}`}>
+                          {item.plainEnglishTask || item.task}
+                        </div>
+                        {item.plainEnglishTask && (
+                          <div className="text-[11px] text-[rgba(13,12,11,0.5)] font-mono">
+                            Technical check: {item.task}
+                          </div>
+                        )}
+                      </div>
                     </label>
 
                     <span className="text-[10px] font-mono text-[rgba(13,12,11,0.45)] uppercase shrink-0">
@@ -400,7 +516,7 @@ export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
                         ) : (
                           <>
                             <Copy className="h-3 w-3" />
-                            <span>Copy</span>
+                            <span>Copy Command</span>
                           </>
                         )}
                       </button>
@@ -415,10 +531,10 @@ export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
           <div className="studio-card p-6 md:p-8 space-y-5 bg-white border border-[rgba(13,12,11,0.12)]">
             <div className="pb-4 border-b border-[rgba(13,12,11,0.08)]">
               <h4 className="text-base font-medium text-[#0d0c0b] tracking-tight">
-                Record Deployment Outcome &amp; Retain Knowledge
+                Save Deployment Outcome &amp; Teach the AI
               </h4>
               <p className="text-xs text-[rgba(13,12,11,0.6)] mt-0.5">
-                When deployment completes, retain the outcome and verified fix into Hindsight organizational memory.
+                When your deployment finishes, record what happened so future engineers have this knowledge in their memory bank forever.
               </p>
             </div>
 
@@ -426,7 +542,7 @@ export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
               <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs space-y-1.5">
                 <div className="font-semibold text-emerald-800 flex items-center gap-1.5">
                   <Check className="h-4 w-4" />
-                  <span>Retained in Hindsight Memory Bank</span>
+                  <span>Saved in Hindsight Memory Vault</span>
                 </div>
                 <div className="text-[rgba(13,12,11,0.5)] font-mono text-[11px]">
                   Memory ID: {deployment.outcome.hindsightMemoryId || 'mem-latest'} &middot; Outcome: {deployment.outcome.status}
@@ -439,15 +555,15 @@ export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
               <form onSubmit={handleOutcomeSubmit} className="space-y-5 text-xs">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                   <div>
-                    <label className="block text-[rgba(13,12,11,0.7)] font-medium mb-1.5">Outcome Status</label>
+                    <label className="block text-[rgba(13,12,11,0.7)] font-medium mb-1.5">Deployment Result</label>
                     <select
                       value={outcomeStatus}
                       onChange={(e) => setOutcomeStatus(e.target.value as any)}
-                      className="w-full rounded-lg bg-[#fafaf8] border border-[rgba(13,12,11,0.14)] px-3 py-2 text-[#0d0c0b] font-mono text-xs focus:outline-none focus:border-[#0d0c0b]"
+                      className="w-full rounded-lg bg-[#fafaf8] border border-[rgba(13,12,11,0.14)] px-3 py-2 text-[#0d0c0b] text-xs focus:outline-none focus:border-[#0d0c0b]"
                     >
-                      <option value="SUCCESS">SUCCESS (Verified nominal)</option>
-                      <option value="DEGRADED">DEGRADED (Issues observed)</option>
-                      <option value="FAILURE">FAILURE (Rolled back)</option>
+                      <option value="SUCCESS">SUCCESS (Deployed smoothly)</option>
+                      <option value="DEGRADED">DEGRADED (Some bugs observed)</option>
+                      <option value="FAILURE">FAILURE (Crashed and rolled back)</option>
                     </select>
                   </div>
 
@@ -462,7 +578,7 @@ export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-[rgba(13,12,11,0.7)] font-medium mb-1.5">Prediction Accuracy</label>
+                    <label className="block text-[rgba(13,12,11,0.7)] font-medium mb-1.5">Was the AI Warning Helpful?</label>
                     <div className="flex items-center gap-4 pt-2">
                       <label className="flex items-center gap-1.5 cursor-pointer text-[#0d0c0b]">
                         <input
@@ -472,7 +588,7 @@ export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
                           onChange={() => setWasPredictionAccurate(true)}
                           className="accent-[#0a0908]"
                         />
-                        Accurate Warning
+                        Accurate Warning (Saved us)
                       </label>
                       <label className="flex items-center gap-1.5 cursor-pointer text-[rgba(13,12,11,0.6)]">
                         <input
@@ -482,14 +598,14 @@ export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
                           onChange={() => setWasPredictionAccurate(false)}
                           className="accent-[#0a0908]"
                         />
-                        False Positive
+                        False Alarm
                       </label>
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[rgba(13,12,11,0.7)] font-medium mb-1.5">Actual Outcome Notes</label>
+                  <label className="block text-[rgba(13,12,11,0.7)] font-medium mb-1.5">What happened during deployment?</label>
                   <textarea
                     rows={2}
                     value={actualOutcomeNotes}
@@ -499,7 +615,7 @@ export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-[rgba(13,12,11,0.7)] font-medium mb-1.5">Lessons Learned for Future Deployments</label>
+                  <label className="block text-[rgba(13,12,11,0.7)] font-medium mb-1.5">Lessons learned for future engineers</label>
                   <textarea
                     rows={2}
                     value={lessonsLearned}
@@ -519,7 +635,7 @@ export const DeploymentInspector: React.FC<DeploymentInspectorProps> = ({
                     disabled={isSubmittingOutcome}
                     className="pill text-xs !h-9 !px-5"
                   >
-                    {isSubmittingOutcome ? 'Retaining...' : 'Confirm Outcome & Retain into Hindsight'}
+                    {isSubmittingOutcome ? 'Saving...' : 'Confirm & Save into Team Memory'}
                   </button>
                 </div>
               </form>

@@ -8,9 +8,11 @@ import { DevOpsAgentChat } from './components/DevOpsAgentChat.js';
 import { CustomDeploymentModal } from './components/CustomDeploymentModal.js';
 import { Deployment, HindsightMemory, HindsightBank, MemoryGraph } from './types/reactor.js';
 import { ShieldCheck } from 'lucide-react';
+import bgImage from './assets/images/bg.webp';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'pipeline' | 'memory' | 'history' | 'agent'>('pipeline');
+  const [viewMode, setViewMode] = useState<'friendly' | 'technical'>('friendly');
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [activeDeployment, setActiveDeployment] = useState<Deployment | null>(null);
   
@@ -202,8 +204,61 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f2f0ec] text-[#0d0c0b] flex flex-col font-sans selection:bg-[#0a0908] selection:text-white antialiased">
-      {/* 1. Fixed Chrome Navigation Bar */}
+    <div className="relative min-h-screen text-[#0d0c0b] flex flex-col font-sans selection:bg-[#0a0908] selection:text-white antialiased">
+      {/* 1. Fixed Atmospheric Flowing Background Video & Animated Streams */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none select-none bg-[#02060f]">
+        {/* Looping Ambient Video */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="auto"
+          poster={bgImage}
+          className="absolute inset-0 w-full h-full object-cover object-center scale-[1.03]"
+        >
+          <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260912_104303_0c6d60b2-9353-408e-9449-585108a22fb5.mp4" type="video/mp4" />
+        </video>
+
+        {/* Fallback Poster in case video stalls or reduced motion */}
+        <img
+          src={bgImage}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover object-center opacity-40 mix-blend-screen"
+        />
+
+        {/* Flowing Light Stream from Left Side */}
+        <div className="absolute top-0 left-0 w-3/4 h-3/4 pointer-events-none animate-flow-left">
+          <div className="w-full h-full bg-gradient-to-br from-amber-400/25 via-amber-300/10 to-transparent blur-3xl" />
+        </div>
+
+        {/* Dynamic Laser Sweep from Upper-Left */}
+        <div className="absolute -top-1/4 -left-1/4 w-[120%] h-[120%] pointer-events-none animate-sweep-left">
+          <div className="w-full h-16 bg-gradient-to-r from-transparent via-amber-300/35 to-transparent blur-xl" />
+        </div>
+
+        {/* Flowing Light Stream from Right Side */}
+        <div className="absolute top-0 right-0 w-3/4 h-3/4 pointer-events-none animate-flow-right">
+          <div className="w-full h-full bg-gradient-to-bl from-amber-400/25 via-amber-300/10 to-transparent blur-3xl" />
+        </div>
+
+        {/* Dynamic Laser Sweep from Upper-Right */}
+        <div className="absolute -top-1/4 -right-1/4 w-[120%] h-[120%] pointer-events-none animate-sweep-right">
+          <div className="w-full h-16 bg-gradient-to-r from-transparent via-amber-300/35 to-transparent blur-xl" />
+        </div>
+
+        {/* Lower Blue Streams from Both Bottom Corners */}
+        <div className="absolute bottom-0 left-0 w-2/3 h-1/2 bg-gradient-to-tr from-sky-500/20 via-sky-400/5 to-transparent blur-3xl" />
+        <div className="absolute bottom-0 right-0 w-2/3 h-1/2 bg-gradient-to-tl from-sky-500/20 via-sky-400/5 to-transparent blur-3xl" />
+
+        {/* Center Convergence Pulse */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-amber-200/20 blur-3xl animate-pulse-converge" />
+
+        {/* Subtle Vignette & Scrim for Readability */}
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-[0.5px]" />
+      </div>
+
+      {/* 2. Fixed Chrome Navigation Bar */}
       <Navbar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -214,18 +269,20 @@ export default function App() {
           memoryCount: hindsightMemories.length,
           bankCount: hindsightBanks.length
         }}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
       />
 
       {/* Floating Toast Notification */}
       {notification && (
-        <div className="fixed bottom-6 right-6 z-50 rounded-full bg-[#0a0908] text-white px-5 py-3 text-xs shadow-xl flex items-center gap-2.5">
+        <div className="fixed bottom-6 right-6 z-50 rounded-full bg-[#0a0908] text-white px-5 py-3 text-xs shadow-2xl flex items-center gap-2.5 border border-white/20">
           <span className="h-2 w-2 rounded-full bg-emerald-400" />
           <span>{notification}</span>
         </div>
       )}
 
-      {/* Main Viewport Content with Spacious, Unattached Layout */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-6 md:px-12 pt-24 md:pt-28 pb-16 space-y-10">
+      {/* Main Viewport Content Floating Over Background */}
+      <main className="relative z-10 flex-1 max-w-6xl w-full mx-auto px-4 md:px-10 pt-20 md:pt-24 pb-16 space-y-10">
         {/* Tab 1: Pre-Flight Pipeline */}
         {activeTab === 'pipeline' && (
           <div className="space-y-10">
@@ -235,6 +292,7 @@ export default function App() {
               onReset={handleReset}
               onOpenCustomModal={() => setIsCustomModalOpen(true)}
               isAnalyzing={isAnalyzing}
+              viewMode={viewMode}
             />
 
             {activeDeployment ? (
@@ -243,9 +301,10 @@ export default function App() {
                 onRecordOutcome={handleRecordOutcome}
                 isSubmittingOutcome={isSubmittingOutcome}
                 onViewHistoricalDeployment={handleViewHistoricalDeployment}
+                viewMode={viewMode}
               />
             ) : (
-              <div className="studio-card p-12 text-center space-y-4 bg-white border border-[rgba(13,12,11,0.12)]">
+              <div className="studio-card p-12 text-center space-y-4">
                 <ShieldCheck className="h-10 w-10 text-[rgba(13,12,11,0.4)] mx-auto" />
                 <h3 className="text-base font-medium text-[#0d0c0b]">No Deployment Selected</h3>
                 <p className="text-xs text-[rgba(13,12,11,0.6)] max-w-sm mx-auto">
@@ -265,15 +324,17 @@ export default function App() {
         {/* Tab 2: Hindsight Agent Memory Explorer */}
         {activeTab === 'memory' && (
           <div className="space-y-8">
-            <div className="space-y-2 pb-2">
+            <div className="studio-card p-6 md:p-8 space-y-2">
               <div className="text-xs font-mono text-[rgba(13,12,11,0.5)] uppercase tracking-wider">
-                Organizational Knowledge Layer
+                Team Shared Brain
               </div>
-              <h1 className="text-3xl md:text-4xl font-normal tracking-tight text-[#0d0c0b]">
-                Hindsight Memory Banks
+              <h1 className="text-2xl md:text-4xl font-normal tracking-tight text-[#0d0c0b]">
+                {viewMode === 'friendly' ? 'Incident Memory Vault' : 'Hindsight Memory Banks'}
               </h1>
               <p className="text-sm text-[rgba(13,12,11,0.65)] max-w-2xl leading-relaxed">
-                Query the long-term semantic memory layer to view recalled incident graphs, dependency histories, and verified remediation patterns.
+                {viewMode === 'friendly'
+                  ? 'Browse the library of past outages, post-mortems, and verified fixes that protect your application before every release.'
+                  : 'Query the long-term semantic memory layer to view recalled incident graphs, dependency histories, and verified remediation patterns.'}
               </p>
             </div>
 
@@ -291,20 +352,22 @@ export default function App() {
         {/* Tab 3: Historical Deployment Ledger */}
         {activeTab === 'history' && (
           <div className="space-y-8">
-            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2">
+            <div className="studio-card p-6 md:p-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div className="space-y-2">
                 <div className="text-xs font-mono text-[rgba(13,12,11,0.5)] uppercase tracking-wider">
-                  Audit Trail
+                  Audit History
                 </div>
-                <h1 className="text-3xl md:text-4xl font-normal tracking-tight text-[#0d0c0b]">
-                  Deployment Ledger
+                <h1 className="text-2xl md:text-4xl font-normal tracking-tight text-[#0d0c0b]">
+                  {viewMode === 'friendly' ? 'Release & Outage History' : 'Deployment Ledger'}
                 </h1>
                 <p className="text-sm text-[rgba(13,12,11,0.65)] max-w-2xl leading-relaxed">
-                  Historical log of deployments, downstream blast radiuses, and post-incident retentions.
+                  {viewMode === 'friendly'
+                    ? 'A timeline of past code releases, incidents caught by the safety gate, and lessons retained for the team.'
+                    : 'Historical ledger of deployments, downstream blast radiuses, and post-incident retentions.'}
                 </p>
               </div>
 
-              <div className="text-xs font-mono text-[rgba(13,12,11,0.5)]">
+              <div className="text-xs font-mono text-[rgba(13,12,11,0.6)] font-medium">
                 {deployments.length} deployments indexed
               </div>
             </div>
@@ -320,15 +383,17 @@ export default function App() {
         {/* Tab 4: DevOps Agent Q&A */}
         {activeTab === 'agent' && (
           <div className="space-y-8">
-            <div className="space-y-2 pb-2">
+            <div className="studio-card p-6 md:p-8 space-y-2">
               <div className="text-xs font-mono text-[rgba(13,12,11,0.5)] uppercase tracking-wider">
                 Engineering Assistant
               </div>
-              <h1 className="text-3xl md:text-4xl font-normal tracking-tight text-[#0d0c0b]">
-                DevOps Knowledge Agent
+              <h1 className="text-2xl md:text-4xl font-normal tracking-tight text-[#0d0c0b]">
+                {viewMode === 'friendly' ? 'DevOps Knowledge Assistant' : 'DevOps Knowledge Agent'}
               </h1>
               <p className="text-sm text-[rgba(13,12,11,0.65)] max-w-2xl leading-relaxed">
-                Ask questions regarding historical outages, dependency incompatibilities, and preventative remediations.
+                {viewMode === 'friendly'
+                  ? 'Ask questions in plain English about why a change is risky, what caused a past outage, or request step-by-step fix commands.'
+                  : 'Query historical outages, dependency incompatibilities, and preventative remediations via semantic recall.'}
               </p>
             </div>
 
@@ -345,8 +410,8 @@ export default function App() {
         isAnalyzing={isAnalyzing}
       />
 
-      {/* Studio Footer from Cast & Render spec */}
-      <footer className="w-full border-t border-[rgba(13,12,11,0.08)] bg-[#eae7e0]/60 py-8 px-6 text-xs text-[rgba(13,12,11,0.5)] font-sans">
+      {/* Studio Footer Floating Over Background */}
+      <footer className="relative z-10 w-full border-t border-[rgba(255,255,255,0.15)] bg-white/80 backdrop-blur-xl py-8 px-6 text-xs text-[rgba(13,12,11,0.6)] font-sans">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <div className="flex items-center gap-2 font-mono">
             <span className="font-semibold text-[#0d0c0b]">REACTOR</span>

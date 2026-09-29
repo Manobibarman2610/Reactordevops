@@ -41,10 +41,10 @@ export const CustomDeploymentModal: React.FC<CustomDeploymentModalProps> = ({
         <div className="flex items-center justify-between pb-3.5 border-b border-[rgba(13,12,11,0.08)]">
           <div>
             <h3 className="text-base font-medium text-[#0d0c0b] tracking-tight">
-              Ingest Custom Deployment PR
+              Test a Custom Code Change (PR)
             </h3>
             <p className="text-[11px] text-[rgba(13,12,11,0.5)] mt-0.5">
-              Simulate CI/CD ingestion to evaluate risk against historical memory
+              Simulate submitting code to see how Hindsight evaluates risk and catches past mistakes.
             </p>
           </div>
           <button
@@ -53,6 +53,62 @@ export const CustomDeploymentModal: React.FC<CustomDeploymentModalProps> = ({
           >
             <X className="h-5 w-5" />
           </button>
+        </div>
+
+        {/* 1-Click Presets */}
+        <div className="space-y-1.5 p-3 rounded-xl bg-[#fafaf8] border border-[rgba(13,12,11,0.08)]">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[rgba(13,12,11,0.45)]">
+            Quick 1-Click Test Presets:
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setService('checkout-api');
+                setCommitMessage('feat(checkout): bump pg driver to 8.11.3 for pooling');
+                setDepName('pg');
+                setFromVer('8.7.3');
+                setToVer('8.11.3');
+                setHasDbMigration(false);
+                setHasInfraChange(false);
+              }}
+              className="text-[11px] px-2.5 py-1 rounded-full bg-white hover:bg-[#f0eee9] text-[#0d0c0b] border border-[rgba(13,12,11,0.12)] transition-colors cursor-pointer"
+            >
+              Repeat Outage (pg driver)
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setService('auth-gateway');
+                setCommitMessage('perf(infra): cut container memory from 1Gi to 384Mi');
+                setDepName('');
+                setHasDbMigration(false);
+                setHasInfraChange(true);
+                setInfraComponent('kubernetes');
+                setInfraDesc('Cut pod memory limit to 384Mi');
+              }}
+              className="text-[11px] px-2.5 py-1 rounded-full bg-white hover:bg-[#f0eee9] text-[#0d0c0b] border border-[rgba(13,12,11,0.12)] transition-colors cursor-pointer"
+            >
+              Cut Server RAM by 50%
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setService('user-service');
+                setCommitMessage('feat(db): add non-null column without default');
+                setDepName('');
+                setHasDbMigration(true);
+                setMigrationName('20260929_add_phone_number');
+                setMigrationDetails('ALTER TABLE users ADD COLUMN phone_number VARCHAR NOT NULL');
+                setHasInfraChange(false);
+              }}
+              className="text-[11px] px-2.5 py-1 rounded-full bg-white hover:bg-[#f0eee9] text-[#0d0c0b] border border-[rgba(13,12,11,0.12)] transition-colors cursor-pointer"
+            >
+              Lock Database Table
+            </button>
+          </div>
         </div>
 
         <form

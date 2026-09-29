@@ -14,7 +14,7 @@ export const DevOpsAgentChat: React.FC = () => {
     {
       id: '1',
       sender: 'agent',
-      text: `Hello, I'm the Reactor DevOps intelligence agent. I have indexed historical deployment logs, failure root causes, and verified remediations across your services using Hindsight memory.\n\nAsk me about past incidents, dependency breaks, or configuration checks before deploying.`,
+      text: `Hello! I'm the Reactor DevOps AI. I have indexed every past incident, outage post-mortem, and verified engineering fix across your company.\n\nYou can ask me questions in everyday plain English (like "Why is Deployment #27 dangerous?") or ask for deep technical commands, Dockerfile flags, and runbooks.`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -137,12 +137,13 @@ export const DevOpsAgentChat: React.FC = () => {
 
       {/* Quick Prompts Bar */}
       <div className="px-6 py-2.5 bg-[#fafaf8] border-t border-[rgba(13,12,11,0.06)] flex items-center gap-2 overflow-x-auto text-xs">
-        <span className="text-[11px] font-mono text-[rgba(13,12,11,0.45)] shrink-0">Prompts:</span>
+        <span className="text-[11px] font-mono text-[rgba(13,12,11,0.45)] shrink-0">Try asking:</span>
         {[
-          'Why is Deployment #27 flagged as critical risk?',
-          'Explain the historical incident from Deployment #1',
-          'What AWS RDS CA bundle should we use with pg 8.11.3?',
-          'What is the blast radius of checkout-api?'
+          'Explain Deployment #27 in plain English',
+          'Why would this update crash user checkouts?',
+          'Show me the exact terminal command to test the fix',
+          'What happened during the Deployment #1 outage?',
+          'Who gets affected if checkout-api goes down?'
         ].map((prompt, idx) => (
           <button
             key={idx}
@@ -168,7 +169,7 @@ export const DevOpsAgentChat: React.FC = () => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about historical incidents, AWS RDS TLS incompatibility, or blast radius..."
+            placeholder="Ask anything in plain English or request terminal commands and runbooks..."
             className="flex-1 rounded-xl bg-[#fafaf8] border border-[rgba(13,12,11,0.14)] px-4 py-2.5 text-xs text-[#0d0c0b] placeholder-[rgba(13,12,11,0.4)] focus:outline-none focus:border-[#0d0c0b]"
           />
 
@@ -177,7 +178,7 @@ export const DevOpsAgentChat: React.FC = () => {
             disabled={!input.trim() || isLoading}
             className="pill !h-10 !px-4 text-xs gap-1.5 shrink-0 disabled:opacity-40"
           >
-            <span>Send</span>
+            <span>Ask</span>
             <ArrowUp className="h-3.5 w-3.5" />
           </button>
         </form>

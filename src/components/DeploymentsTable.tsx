@@ -149,7 +149,13 @@ export const DeploymentsTable: React.FC<DeploymentsTableProps> = ({
                           ? 'bg-amber-100 text-amber-800'
                           : 'bg-emerald-100 text-emerald-800'
                       }`}>
-                        {dep.status.replace(/_/g, ' ')}
+                        {dep.status === 'failed_in_production' 
+                          ? 'Failed Outage' 
+                          : dep.status === 'rolled_back'
+                          ? 'Rolled Back'
+                          : dep.status === 'risk_flagged'
+                          ? 'Risk Flagged'
+                          : 'Safely Deployed'}
                       </span>
                     </td>
 

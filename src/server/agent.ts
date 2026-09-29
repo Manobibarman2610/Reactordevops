@@ -205,6 +205,11 @@ Return ONLY valid JSON matching this schema.`;
     let riskLevel: RiskLevel = 'LOW';
     let headline = `Nominal pre-deployment check for #${deployment.number}`;
     let summary = 'No historical failure patterns detected in Hindsight memory for these modifications.';
+    let plainEnglishHeadline = `All systems clear for Deployment #${deployment.number}`;
+    let plainEnglishSummary = 'This code change looks safe. We did not find any past outages or bugs in our memory bank matching this update.';
+    let customerImpact = 'No negative customer impact expected. All services should run normally.';
+    let businessRisk = 'Minimal risk ($0 expected downtime cost). Standard automated testing recommended.';
+    let simpleFix = 'Proceed with regular automated deployment.';
     let historicalComparison: HistoricalComparison | undefined = undefined;
     let blastRadius: BlastRadiusItem[] = [];
     let checklist: VerificationCheckItem[] = [];
@@ -217,6 +222,12 @@ Return ONLY valid JSON matching this schema.`;
       headline = `Resembles Deployment #1: 'pg' driver upgrade previously caused AWS RDS connection pool exhaustion`;
       summary = `In Deployment #1, updating 'pg' without explicit TLS CA configuration caused ECONNRESET dropouts and exhausted database pool connections under production load. Deployment #${deployment.number} updates 'pg' to ${pgDep?.toVersion || 'newer version'} in ${deployment.service}.`;
       
+      plainEnglishHeadline = 'STOP: This code change will crash user checkout and payments';
+      plainEnglishSummary = 'An engineer is trying to update the database connection tool (pg driver). But 6 months ago, that exact same update crashed our checkout system for 45 minutes because Amazon AWS rejected the security connection. Hindsight remembered this 92% match and stopped it before code was deployed.';
+      customerImpact = 'Customers trying to buy items will see "Payment Failed" or "502 Server Error". Checkout will be 100% blocked.';
+      businessRisk = 'Estimated ~$48,000 lost checkout revenue and ~45 minutes of customer downtime.';
+      simpleFix = 'Include the AWS RDS security certificate in the Docker build and deploy to only 5% of users (Canary) first.';
+
       historicalComparison = {
         similarDeploymentId: 'dep-1',
         similarDeploymentNumber: 1,
@@ -226,7 +237,7 @@ Return ONLY valid JSON matching this schema.`;
         whatFailedThen: 'Strict TLS handshake failure on RDS PostgreSQL connection pool; 25/25 clients drained in 4 minutes',
         rootCauseThen: 'pg v8.8+ enforces strict TLS handshake rejectUnauthorized by default, rejecting RDS intermediate CA',
         resolutionThen: 'Configured rejectUnauthorized: false with AWS global-bundle.pem cert bundle and reduced pool max to 12',
-        outcomeThen: 'Full production outage with 502 Bad Gateway across checkout flow',
+        outcomeThen: 'Full production outage with 502 Bad Gateway across checkout flow (45 mins customer downtime)',
         keyDifferences: [
           `Current version targets ${pgDep?.toVersion || '8.11.3'} (was 8.11.1 in #1)`,
           `Current deployment also includes connection pool keepAlive tuning`,
@@ -235,16 +246,62 @@ Return ONLY valid JSON matching this schema.`;
       };
 
       blastRadius = [
-        { service: 'checkout-api', severity: 'HIGH', dependencyPath: 'Direct driver runtime', potentialImpact: 'Primary pool starvation and HTTP 502 responses' },
-        { service: 'billing-worker', severity: 'HIGH', dependencyPath: 'Downstream synchronous RPC', potentialImpact: 'Payment authorization timeout cascading' },
-        { service: 'order-fulfillment-stream', severity: 'MEDIUM', dependencyPath: 'Event bus lag', potentialImpact: 'Delayed inventory reservation backlog' }
+        { 
+          service: 'checkout-api', 
+          severity: 'HIGH', 
+          dependencyPath: 'Direct database driver', 
+          potentialImpact: 'Primary pool starvation and HTTP 502 responses',
+          userFacingImpact: 'Customers cannot click "Buy Now" or finish orders'
+        },
+        { 
+          service: 'billing-worker', 
+          severity: 'HIGH', 
+          dependencyPath: 'Downstream payment queue', 
+          potentialImpact: 'Payment authorization timeout cascading',
+          userFacingImpact: 'Credit card charges get stuck in processing queues'
+        },
+        { 
+          service: 'order-fulfillment-stream', 
+          severity: 'MEDIUM', 
+          dependencyPath: 'Event bus lag', 
+          potentialImpact: 'Delayed inventory reservation backlog',
+          userFacingImpact: 'Warehouse shipments delayed by up to 2 hours'
+        }
       ];
 
       checklist = [
-        { id: 'chk-1', task: 'Verify RDS certificate bundle (global-bundle.pem) is mounted in Docker container', command: 'openssl s_client -connect $PGHOST:5432 -starttls postgres', completed: false, category: 'database' },
-        { id: 'chk-2', task: 'Confirm ssl.rejectUnauthorized setting matches RDS intermediate chain policy', command: 'node -e "require(\'./src/db/connection\').testTlsHandshake()"', completed: false, category: 'runtime_config' },
-        { id: 'chk-3', task: 'Validate connection pool max limit (<= 12 clients per container instance)', command: 'grep -rn "max:" services/checkout/src/db', completed: false, category: 'runtime_config' },
-        { id: 'chk-4', task: 'Run pgbench load test against canary replica before traffic shift', command: 'pgbench -c 15 -j 4 -t 100 -h $PGHOST_CANARY -U $PGUSER $PGDATABASE', completed: false, category: 'downstream' }
+        { 
+          id: 'chk-1', 
+          task: 'Verify RDS certificate bundle (global-bundle.pem) is mounted in Docker container', 
+          plainEnglishTask: 'Step 1: Make sure the AWS security certificate is copied into the server container',
+          command: 'openssl s_client -connect $PGHOST:5432 -starttls postgres', 
+          completed: false, 
+          category: 'database' 
+        },
+        { 
+          id: 'chk-2', 
+          task: 'Confirm ssl.rejectUnauthorized setting matches RDS intermediate chain policy', 
+          plainEnglishTask: 'Step 2: Test that the database accepts our security credentials without crashing',
+          command: 'node -e "require(\'./src/db/connection\').testTlsHandshake()"', 
+          completed: false, 
+          category: 'runtime_config' 
+        },
+        { 
+          id: 'chk-3', 
+          task: 'Validate connection pool max limit (<= 12 clients per container instance)', 
+          plainEnglishTask: 'Step 3: Keep simultaneous database connections limited to 12 to prevent server overload',
+          command: 'grep -rn "max:" services/checkout/src/db', 
+          completed: false, 
+          category: 'runtime_config' 
+        },
+        { 
+          id: 'chk-4', 
+          task: 'Run pgbench load test against canary replica before traffic shift', 
+          plainEnglishTask: 'Step 4: Send simulated shopping traffic to 5% of users to prove it works before full rollout',
+          command: 'pgbench -c 15 -j 4 -t 100 -h $PGHOST_CANARY -U $PGUSER $PGDATABASE', 
+          completed: false, 
+          category: 'downstream' 
+        }
       ];
 
       recommendedStrategy = 'CANARY_5_PERCENT';
@@ -255,6 +312,12 @@ Return ONLY valid JSON matching this schema.`;
       headline = 'Resembles Deployment #11: Aggressive Redis timeout caused authentication cascade failure';
       summary = 'Historical memory records cross-AZ latency jitter causing mass connection resets when Redis timeouts were lowered below 1000ms.';
       
+      plainEnglishHeadline = 'Warning: Setting cache timeout too fast will kick users out of their accounts';
+      plainEnglishSummary = 'The code tries to speed up user logins by dropping the wait timeout to 100ms. But on August 30 (Deployment #11), normal internet delay caused 18% of users to get randomly logged out and locked out of their accounts.';
+      customerImpact = 'Users randomly get logged out and cannot sign back into their account.';
+      businessRisk = 'High surge of customer support complaints and lost login sessions.';
+      simpleFix = 'Keep the timeout at 1,000 milliseconds (1 second) and add a fallback memory cache.';
+
       historicalComparison = {
         similarDeploymentId: 'dep-11',
         similarDeploymentNumber: 11,
@@ -269,13 +332,37 @@ Return ONLY valid JSON matching this schema.`;
       };
 
       blastRadius = [
-        { service: deployment.service, severity: 'HIGH', dependencyPath: 'Direct cache layer', potentialImpact: 'Session cache eviction & stampede' },
-        { service: 'postgres-primary', severity: 'HIGH', dependencyPath: 'Fallback queries', potentialImpact: '10x spike in authentication read queries' }
+        { 
+          service: deployment.service, 
+          severity: 'HIGH', 
+          dependencyPath: 'Direct cache layer', 
+          potentialImpact: 'Session cache eviction & stampede',
+          userFacingImpact: 'Users get logged out and have to repeatedly type their passwords'
+        },
+        { 
+          service: 'postgres-primary', 
+          severity: 'HIGH', 
+          dependencyPath: 'Fallback queries', 
+          potentialImpact: '10x spike in authentication read queries',
+          userFacingImpact: 'App feels sluggish and slow to respond'
+        }
       ];
 
       checklist = [
-        { id: 'r1', task: 'Confirm Redis connect timeout is >= 1000ms with jittered backoff', completed: false, category: 'runtime_config' },
-        { id: 'r2', task: 'Verify local in-memory fallback circuit breaker is active', completed: false, category: 'downstream' }
+        { 
+          id: 'r1', 
+          task: 'Confirm Redis connect timeout is >= 1000ms with jittered backoff', 
+          plainEnglishTask: 'Step 1: Ensure login timeout gives at least 1 second for internet hiccups',
+          completed: false, 
+          category: 'runtime_config' 
+        },
+        { 
+          id: 'r2', 
+          task: 'Verify local in-memory fallback circuit breaker is active', 
+          plainEnglishTask: 'Step 2: Turn on the backup cache so users stay logged in even if the main cache pauses',
+          completed: false, 
+          category: 'downstream' 
+        }
       ];
 
       recommendedStrategy = 'CANARY_5_PERCENT';
@@ -286,6 +373,12 @@ Return ONLY valid JSON matching this schema.`;
       headline = 'Resembles Deployment #22: Database migration pattern carries ACCESS EXCLUSIVE table lock risk';
       summary = 'Hindsight records previous migration locking the 12M row table for 47 seconds, exhausting active connections.';
       
+      plainEnglishHeadline = 'Warning: This database update will freeze the entire website for ~1 minute';
+      plainEnglishSummary = 'The code is adding a new column to the customer database table without a default value. In Deployment #22, doing this locked 12 million rows and froze the entire website for 47 seconds, showing errors to all visitors.';
+      customerImpact = 'Website will freeze and show "Service Unavailable" for almost 1 full minute.';
+      businessRisk = 'All active customer transactions frozen during peak hours.';
+      simpleFix = 'Make the column optional (nullable) first, so the database can update in the background without freezing.';
+
       historicalComparison = {
         similarDeploymentId: 'dep-22',
         similarDeploymentNumber: 22,
@@ -300,12 +393,30 @@ Return ONLY valid JSON matching this schema.`;
       };
 
       blastRadius = [
-        { service: deployment.service, severity: 'HIGH', dependencyPath: 'Database lock', potentialImpact: 'Blocked write transactions' }
+        { 
+          service: deployment.service, 
+          severity: 'HIGH', 
+          dependencyPath: 'Database lock', 
+          potentialImpact: 'Blocked write transactions',
+          userFacingImpact: 'Any user trying to save data gets an error spinner'
+        }
       ];
 
       checklist = [
-        { id: 'm1', task: 'Ensure new columns are nullable or have default values', completed: false, category: 'database' },
-        { id: 'm2', task: 'Validate lock_timeout is set (e.g. SET lock_timeout = "2s")', completed: false, category: 'database' }
+        { 
+          id: 'm1', 
+          task: 'Ensure new columns are nullable or have default values', 
+          plainEnglishTask: 'Step 1: Set the new database column to optional so existing rows are not frozen',
+          completed: false, 
+          category: 'database' 
+        },
+        { 
+          id: 'm2', 
+          task: 'Validate lock_timeout is set (e.g. SET lock_timeout = "2s")', 
+          plainEnglishTask: 'Step 2: Set an automatic 2-second safety timeout so the database aborts rather than freezing',
+          completed: false, 
+          category: 'database' 
+        }
       ];
 
       recommendedStrategy = 'STAGED_WITH_SHADOW';
@@ -316,6 +427,12 @@ Return ONLY valid JSON matching this schema.`;
       headline = 'Resembles Deployment #18: Kubernetes memory quota reduction risk under Node.js runtime';
       summary = 'Historical memory records container crashes during V8 startup heap expansion when memory limits were reduced.';
       
+      plainEnglishHeadline = 'Warning: Cutting server memory in half risks sudden app crashes under peak traffic';
+      plainEnglishSummary = 'This configuration change reduces the server memory limit to 384MB. In Deployment #18, when servers started up, Node.js needed 512MB to initialize, causing the servers to instantly crash in a restart loop.';
+      customerImpact = 'Servers repeatedly crash, causing 503 errors and slow loading times.';
+      businessRisk = 'Outage risk during traffic spikes or when new servers spin up to handle load.';
+      simpleFix = 'Keep memory at 768MB or higher, with Node.js heap limit configured to 512MB.';
+
       historicalComparison = {
         similarDeploymentId: 'dep-18',
         similarDeploymentNumber: 18,
@@ -330,12 +447,30 @@ Return ONLY valid JSON matching this schema.`;
       };
 
       blastRadius = [
-        { service: deployment.service, severity: 'HIGH', dependencyPath: 'Pod restart', potentialImpact: 'Container crash loop backoff' }
+        { 
+          service: deployment.service, 
+          severity: 'HIGH', 
+          dependencyPath: 'Pod restart', 
+          potentialImpact: 'Container crash loop backoff',
+          userFacingImpact: 'App goes offline for several minutes while containers crash and restart'
+        }
       ];
 
       checklist = [
-        { id: 'k1', task: 'Confirm container memory limit is >= 512Mi for Node runtime', completed: false, category: 'runtime_config' },
-        { id: 'k2', task: 'Inspect NODE_OPTIONS max-old-space-size configuration', completed: false, category: 'runtime_config' }
+        { 
+          id: 'k1', 
+          task: 'Confirm container memory limit is >= 512Mi for Node runtime', 
+          plainEnglishTask: 'Step 1: Give the server at least 512MB of RAM so it has breathing room to start',
+          completed: false, 
+          category: 'runtime_config' 
+        },
+        { 
+          id: 'k2', 
+          task: 'Inspect NODE_OPTIONS max-old-space-size configuration', 
+          plainEnglishTask: 'Step 2: Tell Node.js its exact memory budget in the server launch script',
+          completed: false, 
+          category: 'runtime_config' 
+        }
       ];
 
       recommendedStrategy = 'CANARY_5_PERCENT';
@@ -347,6 +482,11 @@ Return ONLY valid JSON matching this schema.`;
       confidence: topMem ? Math.min(96, Math.max(75, score)) : 90,
       headline,
       summary,
+      plainEnglishHeadline,
+      plainEnglishSummary,
+      customerImpact,
+      businessRisk,
+      simpleFix,
       historicalComparison,
       blastRadius,
       verificationChecklist: checklist,
@@ -473,20 +613,27 @@ Resolution: ${m.memory.metadata.resolution}
 Verified: ${m.memory.metadata.verifiedFix}
 `).join('\n---\n');
 
-        const prompt = `You are REACTOR, the AI DevOps Engineer that remembers every deployment.
-Answer the following engineer query using organizational memory recalled from Hindsight:
+        const prompt = `You are REACTOR, the AI DevOps Engineer that remembers every software deployment.
+Answer the user's question using organizational memory recalled from Hindsight.
+The user requested that explanations should be both USER-FRIENDLY (plain English so anyone can understand) AND TECH-ORIENTED (providing concrete technical commands and root causes).
 
-ENGINEER QUESTION:
+USER QUESTION:
 ${question}
 
-RECALLED HINDSIGHT ORGANIZATIONAL MEMORIES:
+RECALLED HINDSIGHT INCIDENT MEMORIES:
 ${memContext || 'No related incident memories found.'}
 
-INSTRUCTIONS:
-- Give a direct, expert DevOps engineer answer.
-- Reference specific historical deployment numbers, services, root causes, and verified fixes where relevant.
-- Emphasize prevention and runbook best practices.
-- Avoid generic marketing fluff; sound like a staff platform engineer.`;
+FORMAT YOUR ANSWER CLEARLY IN TWO DISTINCT SECTIONS:
+
+**In Plain English (Simple Summary)**:
+- Explain what is happening without overly dense jargon.
+- Explain what happens to real customers/users (e.g. "Customers will be unable to pay and see an error page").
+- Use a clear everyday analogy if helpful.
+
+**Technical Deep-Dive (For Engineers)**:
+- Provide specific historical deployment numbers (e.g. Deployment #1), affected services, and verified root causes.
+- Provide the exact technical fix (environment variables, AWS CA certificates, Dockerfile flags, or terminal commands).
+- Specify recommended rollout strategy (e.g. 5% Canary rollout with automated rollback triggers).`;
 
         const response = await geminiClient.models.generateContent({
           model: 'gemini-3.8-flash',
@@ -505,20 +652,27 @@ INSTRUCTIONS:
     // Local fallback synthesis
     if (recallResult.memories.length === 0) {
       return {
-        answer: `I searched Hindsight long-term memory for "${question}", but found no closely matching deployment failure or incident. For novel changes, I recommend running full unit/integration test suites and rolling out through Canary (5%) with automated rollback triggers.`,
+        answer: `**In Plain English**:
+We checked our team's past incident memory, and we haven't seen an outage like this before. Because this is brand new code, we should deploy it carefully to a small group of users first.
+
+**Technical Recommendation**:
+No historical failure patterns detected in Hindsight memory for "${question}". Run full unit/integration test suites and deploy through Canary (5% traffic) with automated rollback triggers.`,
         memoriesConsulted: []
       };
     }
 
     const top = recallResult.memories[0].memory;
-    const answer = `Based on organizational memory in Hindsight (${top.title}):
-Last time we observed a related pattern in ${top.metadata.service || 'our services'}, the root cause was:
-"${top.metadata.rootCause || 'configuration drift'}".
+    const answer = `**In Plain English**:
+Whenever we changed something similar in the past, it broke our customer services because of:
+"${top.summary || top.title}".
+If we deploy this without checking, customers may experience connection dropouts and slow loading. The safe fix our team learned before is to: "${top.metadata.resolution || 'update the configuration and test on 5% of users first'}".
 
-Verified Resolution:
-"${top.metadata.resolution || 'applied configuration patch and tuned connection parameters'}".
-
-Key Recommendation: Before deploying similar changes, review the verified fix and ensure downstream services (${(top.metadata.downstreamEffects || []).join(', ') || 'connected microservices'}) have active circuit breakers.`;
+**Technical Deep-Dive (Incident ${top.metadata.deploymentNumber ? '#' + top.metadata.deploymentNumber : top.id})**:
+• **Target Service**: ${top.metadata.service || 'checkout-api'}
+• **Root Cause**: ${top.metadata.rootCause || 'Configuration drift / TLS handshake mismatch'}
+• **Verified Resolution**: ${top.metadata.resolution || 'Applied configuration patch and tuned connection parameters'}
+• **Downstream Affected Services**: ${(top.metadata.downstreamEffects || []).join(', ') || 'connected microservices'}
+• **Action Required**: Verify TLS certificate chain and use Canary (5%) traffic shifting before 100% rollout.`;
 
     return {
       answer,
