@@ -1,0 +1,6 @@
+{
+  "name": "REACTOR",
+  "description": "The AI DevOps Engineer That Remembers Every Deployment. Turning every deployment into organizational memory that helps your team prevent the next failure.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

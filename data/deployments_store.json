@@ -1,0 +1,471 @@
+[
+  {
+    "id": "dep-1",
+    "number": 1,
+    "commitHash": "7a9f142",
+    "commitMessage": "feat(checkout): upgrade pg driver from 8.7.3 to 8.11.1 for connection improvements",
+    "author": {
+      "name": "Sarah Chen",
+      "email": "schen@reactor.io"
+    },
+    "branch": "main",
+    "environment": "production",
+    "service": "checkout-api",
+    "timestamp": "2026-08-14T09:12:00Z",
+    "status": "failed_in_production",
+    "fileChanges": [
+      {
+        "path": "services/checkout/package.json",
+        "type": "modified"
+      },
+      {
+        "path": "services/checkout/src/db/connection.ts",
+        "type": "modified"
+      }
+    ],
+    "dependencyChanges": [
+      {
+        "name": "pg",
+        "fromVersion": "8.7.3",
+        "toVersion": "8.11.1",
+        "isMajor": false,
+        "type": "production"
+      }
+    ],
+    "envVarChanges": [],
+    "infraChanges": [],
+    "databaseChanges": [],
+    "riskAssessment": {
+      "riskLevel": "HIGH",
+      "confidence": 85,
+      "headline": "PostgreSQL driver minor update with TLS breaking defaults",
+      "summary": "Upgraded pg to 8.11.1 without explicit TLS rejectUnauthorized flag.",
+      "blastRadius": [
+        {
+          "service": "checkout-api",
+          "severity": "HIGH",
+          "dependencyPath": "direct",
+          "potentialImpact": "Connection pool starvation"
+        },
+        {
+          "service": "billing-worker",
+          "severity": "HIGH",
+          "dependencyPath": "downstream RPC",
+          "potentialImpact": "Order creation timeout"
+        }
+      ],
+      "verificationChecklist": [
+        {
+          "id": "c1",
+          "task": "Verify RDS certificate bundle with rejectUnauthorized flag",
+          "completed": false,
+          "category": "database"
+        },
+        {
+          "id": "c2",
+          "task": "Simulate connection pool load with pgbench",
+          "completed": false,
+          "category": "runtime_config"
+        }
+      ],
+      "recommendedStrategy": "CANARY_5_PERCENT",
+      "preventionAdvice": "Do not deploy pg 8.11+ without matching AWS RDS SSL certificate bundle.",
+      "hindsightMemoriesConsulted": [],
+      "analyzedAt": "2026-08-14T09:13:00Z"
+    },
+    "outcome": {
+      "status": "FAILURE",
+      "completedAt": "2026-08-14T09:20:00Z",
+      "errorLogSnippet": "Error: self signed certificate in certificate chain (AWS RDS Postgres:5432) at TLSSocket.onConnectSecure. Max pool size drained (25/25 clients hung).",
+      "downstreamIncidents": [
+        "billing-worker (502 Gateway)",
+        "order-fulfillment (Kafka lag +14,200)"
+      ],
+      "engineerResolution": "Provided AWS global-bundle.pem in ssl config and tuned pool clients to 12. Fix verified.",
+      "retainedInHindsight": true,
+      "hindsightMemoryId": "mem-deploy-1"
+    },
+    "feedback": {
+      "engineerName": "Sarah Chen",
+      "wasPredictionAccurate": true,
+      "checklistFollowed": false,
+      "actualOutcomeNotes": "We rushed the minor driver upgrade thinking pg 8.11 was backwards compatible. It completely broke RDS TLS handshakes.",
+      "lessonsLearned": "Always verify RDS CA bundle compatibility on any pg driver change.",
+      "submittedAt": "2026-08-14T10:15:00Z"
+    }
+  },
+  {
+    "id": "dep-5",
+    "number": 5,
+    "commitHash": "3f2b891",
+    "commitMessage": "chore(billing): upgrade stripe-node sdk v11 to v14",
+    "author": {
+      "name": "Marcus Brody",
+      "email": "mbrody@reactor.io"
+    },
+    "branch": "main",
+    "environment": "production",
+    "service": "billing-worker",
+    "timestamp": "2026-08-21T14:00:00Z",
+    "status": "failed_in_production",
+    "fileChanges": [
+      {
+        "path": "services/billing/package.json",
+        "type": "modified"
+      },
+      {
+        "path": "services/billing/src/webhooks.ts",
+        "type": "modified"
+      }
+    ],
+    "dependencyChanges": [
+      {
+        "name": "stripe",
+        "fromVersion": "11.18.0",
+        "toVersion": "14.2.0",
+        "isMajor": true,
+        "type": "production"
+      }
+    ],
+    "envVarChanges": [],
+    "infraChanges": [],
+    "databaseChanges": [],
+    "outcome": {
+      "status": "FAILURE",
+      "completedAt": "2026-08-21T14:10:00Z",
+      "errorLogSnippet": "StripeSignatureVerificationError: No signatures found matching the expected signature for payload.",
+      "engineerResolution": "Placed raw body middleware before express.json() parser.",
+      "retainedInHindsight": true,
+      "hindsightMemoryId": "mem-deploy-5"
+    }
+  },
+  {
+    "id": "dep-11",
+    "number": 11,
+    "commitHash": "8d4e101",
+    "commitMessage": "perf(auth): reduce Redis connect timeout to 100ms for faster circuit trip",
+    "author": {
+      "name": "Alex Rivera",
+      "email": "arivera@reactor.io"
+    },
+    "branch": "main",
+    "environment": "production",
+    "service": "auth-gateway",
+    "timestamp": "2026-08-30T16:30:00Z",
+    "status": "rolled_back",
+    "fileChanges": [
+      {
+        "path": "services/auth/config/redis.json",
+        "type": "modified"
+      }
+    ],
+    "dependencyChanges": [],
+    "envVarChanges": [
+      {
+        "key": "REDIS_CONNECT_TIMEOUT_MS",
+        "action": "modified"
+      }
+    ],
+    "infraChanges": [],
+    "databaseChanges": [],
+    "outcome": {
+      "status": "FAILURE",
+      "completedAt": "2026-08-30T16:45:00Z",
+      "errorLogSnippet": "RedisConnectionError: Connection timeout (100ms) to master.elasticache.internal during session check.",
+      "engineerResolution": "Rolled back to 1200ms timeout with circuit breaker local JWT fallback.",
+      "retainedInHindsight": true,
+      "hindsightMemoryId": "mem-deploy-11"
+    }
+  },
+  {
+    "id": "dep-18",
+    "number": 18,
+    "commitHash": "2c8a774",
+    "commitMessage": "infra(helm): adjust memory requests to 384Mi for recommendation-engine",
+    "author": {
+      "name": "Elena Rostova",
+      "email": "erostova@reactor.io"
+    },
+    "branch": "main",
+    "environment": "production",
+    "service": "recommendation-engine",
+    "timestamp": "2026-09-08T10:45:00Z",
+    "status": "failed_in_production",
+    "fileChanges": [
+      {
+        "path": "deploy/helm/recommendation/values.yaml",
+        "type": "modified"
+      }
+    ],
+    "dependencyChanges": [],
+    "envVarChanges": [],
+    "infraChanges": [
+      {
+        "component": "kubernetes",
+        "changeType": "helm",
+        "description": "Reduced memory limit from 1Gi to 384Mi"
+      }
+    ],
+    "databaseChanges": [],
+    "outcome": {
+      "status": "FAILURE",
+      "completedAt": "2026-09-08T11:00:00Z",
+      "errorLogSnippet": "Container recommendation-engine-79bf484d-zxl2 killed by Linux kernel OOM killer (cgroup memory limit reached 384MB).",
+      "engineerResolution": "Restored limit to 768Mi with --max-old-space-size=512.",
+      "retainedInHindsight": true,
+      "hindsightMemoryId": "mem-deploy-18"
+    }
+  },
+  {
+    "id": "dep-22",
+    "number": 22,
+    "commitHash": "5e1199a",
+    "commitMessage": "db(users): add account_tier NOT NULL column to users table",
+    "author": {
+      "name": "Devon Lee",
+      "email": "dlee@reactor.io"
+    },
+    "branch": "main",
+    "environment": "production",
+    "service": "user-service",
+    "timestamp": "2026-09-17T08:15:00Z",
+    "status": "failed_in_production",
+    "fileChanges": [
+      {
+        "path": "prisma/schema.prisma",
+        "type": "modified"
+      },
+      {
+        "path": "prisma/migrations/20260917_tier/migration.sql",
+        "type": "added"
+      }
+    ],
+    "dependencyChanges": [],
+    "envVarChanges": [],
+    "infraChanges": [],
+    "databaseChanges": [
+      {
+        "migrationName": "20260917_tier",
+        "type": "schema",
+        "hasDestructiveOperations": true,
+        "details": "ALTER TABLE users ADD COLUMN account_tier VARCHAR NOT NULL"
+      }
+    ],
+    "outcome": {
+      "status": "FAILURE",
+      "completedAt": "2026-09-17T08:30:00Z",
+      "errorLogSnippet": "PostgresQueryError: Lock wait timeout exceeded (47000ms) on table users while holding ACCESS EXCLUSIVE lock.",
+      "engineerResolution": "Migrated column as nullable, backfilled in batches, added constraint validated.",
+      "retainedInHindsight": true,
+      "hindsightMemoryId": "mem-deploy-22"
+    }
+  },
+  {
+    "id": "dep-24",
+    "number": 24,
+    "commitHash": "90ab41c",
+    "commitMessage": "feat(notifications): add Kafka dead letter queue and exponential backoff retry",
+    "author": {
+      "name": "Sarah Chen",
+      "email": "schen@reactor.io"
+    },
+    "branch": "main",
+    "environment": "production",
+    "service": "notification-service",
+    "timestamp": "2026-09-22T13:00:00Z",
+    "status": "deployed_success",
+    "fileChanges": [
+      {
+        "path": "services/notification/src/kafka/consumer.ts",
+        "type": "modified"
+      }
+    ],
+    "dependencyChanges": [],
+    "envVarChanges": [],
+    "infraChanges": [],
+    "databaseChanges": [],
+    "outcome": {
+      "status": "SUCCESS",
+      "completedAt": "2026-09-22T13:15:00Z",
+      "retainedInHindsight": true,
+      "hindsightMemoryId": "mem-deploy-24"
+    }
+  },
+  {
+    "id": "dep-26",
+    "number": 26,
+    "commitHash": "1a2b3c4",
+    "commitMessage": "feat(cart): update session serializer and add promotional banner cache",
+    "author": {
+      "name": "Marcus Brody",
+      "email": "mbrody@reactor.io"
+    },
+    "branch": "main",
+    "environment": "production",
+    "service": "checkout-api",
+    "timestamp": "2026-09-26T15:20:00Z",
+    "status": "deployed_success",
+    "fileChanges": [
+      {
+        "path": "services/checkout/src/cart/serializer.ts",
+        "type": "modified"
+      }
+    ],
+    "dependencyChanges": [],
+    "envVarChanges": [],
+    "infraChanges": [],
+    "databaseChanges": [],
+    "outcome": {
+      "status": "SUCCESS",
+      "completedAt": "2026-09-26T15:35:00Z",
+      "retainedInHindsight": false
+    }
+  },
+  {
+    "id": "dep-27",
+    "number": 27,
+    "commitHash": "9e3d82f",
+    "commitMessage": "perf(checkout): upgrade pg postgres driver from 8.7.3 to 8.11.3 and tune connection pool",
+    "author": {
+      "name": "Alex Rivera",
+      "email": "arivera@reactor.io"
+    },
+    "branch": "main",
+    "environment": "production",
+    "service": "checkout-api",
+    "timestamp": "2026-09-28T18:20:59.135Z",
+    "status": "risk_flagged",
+    "fileChanges": [
+      {
+        "path": "services/checkout/package.json",
+        "type": "modified"
+      },
+      {
+        "path": "services/checkout/src/db/connection.ts",
+        "type": "modified"
+      },
+      {
+        "path": "services/checkout/Dockerfile",
+        "type": "modified"
+      }
+    ],
+    "dependencyChanges": [
+      {
+        "name": "pg",
+        "fromVersion": "8.7.3",
+        "toVersion": "8.11.3",
+        "isMajor": false,
+        "type": "production"
+      }
+    ],
+    "envVarChanges": [
+      {
+        "key": "PG_MAX_POOL_CLIENTS",
+        "action": "modified"
+      }
+    ],
+    "infraChanges": [
+      {
+        "component": "dockerfile",
+        "changeType": "dockerfile",
+        "description": "Updated base image node:20-alpine"
+      }
+    ],
+    "databaseChanges": [],
+    "riskAssessment": {
+      "riskLevel": "CRITICAL",
+      "confidence": 89,
+      "headline": "Resembles Deployment #1: 'pg' driver upgrade previously caused AWS RDS connection pool exhaustion",
+      "summary": "In Deployment #1, updating 'pg' without explicit TLS CA configuration caused ECONNRESET dropouts and exhausted database pool connections under production load. Deployment #27 updates 'pg' to 8.11.3 in checkout-api.",
+      "historicalComparison": {
+        "similarDeploymentId": "dep-1",
+        "similarDeploymentNumber": 1,
+        "similarityScore": 92,
+        "matchedTags": [
+          "pg",
+          "postgres",
+          "tls",
+          "connection-pool",
+          "checkout-api"
+        ],
+        "whatChangedThen": "Upgraded 'pg' from 8.7.3 to 8.11.1 in checkout-api",
+        "whatFailedThen": "Strict TLS handshake failure on RDS PostgreSQL connection pool; 25/25 clients drained in 4 minutes",
+        "rootCauseThen": "pg v8.8+ enforces strict TLS handshake rejectUnauthorized by default, rejecting RDS intermediate CA",
+        "resolutionThen": "Configured rejectUnauthorized: false with AWS global-bundle.pem cert bundle and reduced pool max to 12",
+        "outcomeThen": "Full production outage with 502 Bad Gateway across checkout flow",
+        "keyDifferences": [
+          "Current version targets 8.11.3 (was 8.11.1 in #1)",
+          "Current deployment also includes connection pool keepAlive tuning",
+          "Target environment is production"
+        ]
+      },
+      "blastRadius": [
+        {
+          "service": "checkout-api",
+          "severity": "HIGH",
+          "dependencyPath": "Direct driver runtime",
+          "potentialImpact": "Primary pool starvation and HTTP 502 responses"
+        },
+        {
+          "service": "billing-worker",
+          "severity": "HIGH",
+          "dependencyPath": "Downstream synchronous RPC",
+          "potentialImpact": "Payment authorization timeout cascading"
+        },
+        {
+          "service": "order-fulfillment-stream",
+          "severity": "MEDIUM",
+          "dependencyPath": "Event bus lag",
+          "potentialImpact": "Delayed inventory reservation backlog"
+        }
+      ],
+      "verificationChecklist": [
+        {
+          "id": "chk-1",
+          "task": "Verify RDS certificate bundle (global-bundle.pem) is mounted in Docker container",
+          "command": "openssl s_client -connect $PGHOST:5432 -starttls postgres",
+          "completed": false,
+          "category": "database"
+        },
+        {
+          "id": "chk-2",
+          "task": "Confirm ssl.rejectUnauthorized setting matches RDS intermediate chain policy",
+          "command": "node -e \"require('./src/db/connection').testTlsHandshake()\"",
+          "completed": false,
+          "category": "runtime_config"
+        },
+        {
+          "id": "chk-3",
+          "task": "Validate connection pool max limit (<= 12 clients per container instance)",
+          "command": "grep -rn \"max:\" services/checkout/src/db",
+          "completed": false,
+          "category": "runtime_config"
+        },
+        {
+          "id": "chk-4",
+          "task": "Run pgbench load test against canary replica before traffic shift",
+          "command": "pgbench -c 15 -j 4 -t 100 -h $PGHOST_CANARY -U $PGUSER $PGDATABASE",
+          "completed": false,
+          "category": "downstream"
+        }
+      ],
+      "recommendedStrategy": "CANARY_5_PERCENT",
+      "preventionAdvice": "Hindsight memory indicates high probability of database connection failure if TLS parameters are not explicitly set. Test TLS handshake in canary before 100% traffic shift.",
+      "hindsightMemoriesConsulted": [
+        {
+          "id": "mem-deploy-1",
+          "score": 0.89,
+          "title": "Deployment #1: pg Postgres driver 8.7 -> 8.11 TLS renegotiation failure",
+          "summary": "pg driver upgrade caused strict TLS handshake failure on RDS PostgreSQL connection pool during peak load. Resolved via AWS CA bundle and connection pool tuning."
+        },
+        {
+          "id": "mem-deploy-22",
+          "score": 0.29,
+          "title": "Deployment #22: Prisma migration adding NOT NULL column without DEFAULT value",
+          "summary": "Prisma migration with NOT NULL column locked 12M user table for 47s, exhausting database pool connections."
+        }
+      ],
+      "analyzedAt": "2026-09-28T18:21:01.223Z"
+    }
+  }
+]
